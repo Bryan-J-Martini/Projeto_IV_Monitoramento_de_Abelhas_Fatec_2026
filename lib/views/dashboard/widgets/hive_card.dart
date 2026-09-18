@@ -58,7 +58,14 @@ class _HiveCardState extends State<HiveCard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _ConnectionLabel(isOnline: isOnline, color: statusColor),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: _ConnectionLabel(
+                        isOnline: isOnline,
+                        color: statusColor,
+                      ),
+                    ),
                     const SizedBox(height: 3),
                     Center(
                       child: Container(
@@ -91,12 +98,20 @@ class _HiveCardState extends State<HiveCard> {
                           curve: Curves.easeOutBack,
                           builder: (context, value, child) =>
                               Transform.scale(scale: value, child: child),
-                          child: const SizedBox(
-                            width: 78,
-                            height: 69,
-                            child: CustomPaint(
-                              painter: _HiveIllustrationPainter(),
-                            ),
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final illustrationWidth =
+                                  (constraints.maxWidth * 0.62)
+                                      .clamp(54.0, 78.0)
+                                      .toDouble();
+                              return SizedBox(
+                                width: illustrationWidth,
+                                height: illustrationWidth * 0.88,
+                                child: const CustomPaint(
+                                  painter: _HiveIllustrationPainter(),
+                                ),
+                              );
+                            },
                           ),
                         ),
                       ),
@@ -249,24 +264,6 @@ class _HiveIllustrationPainter extends CustomPainter {
       Offset(x, top + 35),
       6,
       Paint()..color = const Color(0xFFB65A05),
-    );
-    canvas.drawOval(
-      Rect.fromCenter(center: Offset(x + 10, top + 51), width: 13, height: 6),
-      Paint()..color = Colors.white,
-    );
-    canvas.drawLine(
-      Offset(x + 4, top + 51),
-      Offset(x + 16, top + 51),
-      Paint()
-        ..color = const Color(0xFFB65A05)
-        ..strokeWidth = 1,
-    );
-    canvas.drawLine(
-      Offset(x + 10, top + 47),
-      Offset(x + 10, top + 55),
-      Paint()
-        ..color = const Color(0xFFB65A05)
-        ..strokeWidth = 1,
     );
   }
 

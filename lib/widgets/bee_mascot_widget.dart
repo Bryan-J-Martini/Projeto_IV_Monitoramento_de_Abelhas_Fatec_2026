@@ -1,10 +1,12 @@
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+
 import '../core/theme/app_colors.dart';
 
 enum BeeMood {
-  happy, // 26°C a 32°C (Ideal)
-  cold, // < 26°C (Alerta frio)
+  happy, // 28°C a 32°C (Ideal)
+  cold, // < 28°C (Triste / alerta frio)
   hot, // > 32°C (Alerta calor)
 }
 
@@ -34,9 +36,9 @@ class _BeeMascotWidgetState extends State<BeeMascotWidget>
   bool _isBubbleVisible = false;
 
   BeeMood get mood {
-    if (widget.internalTemp >= 26.0 && widget.internalTemp <= 32.0) {
+    if (widget.internalTemp >= 28.0 && widget.internalTemp <= 32.0) {
       return BeeMood.happy;
-    } else if (widget.internalTemp < 26.0) {
+    } else if (widget.internalTemp < 28.0) {
       return BeeMood.cold;
     } else {
       return BeeMood.hot;
@@ -48,7 +50,7 @@ class _BeeMascotWidgetState extends State<BeeMascotWidget>
       case BeeMood.happy:
         return 'Bzz! Enxame feliz! Temperatura ideal de ${widget.internalTemp.toStringAsFixed(1)}°C.';
       case BeeMood.cold:
-        return 'Brrr! Estamos com frio (${widget.internalTemp.toStringAsFixed(1)}°C). Proteja a caixa do vento!';
+        return 'Brrr! Estou triste e com frio (${widget.internalTemp.toStringAsFixed(1)}°C). Proteja a caixa do vento!';
       case BeeMood.hot:
         return 'Uff! Muito calor (${widget.internalTemp.toStringAsFixed(1)}°C)! Verifique o sombreamento!';
     }
@@ -101,10 +103,7 @@ class _BeeMascotWidgetState extends State<BeeMascotWidget>
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.92),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: _getMoodBorderColor(),
-                  width: 1.2,
-                ),
+                border: Border.all(color: _getMoodBorderColor(), width: 1.2),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.06),
@@ -116,10 +115,7 @@ class _BeeMascotWidgetState extends State<BeeMascotWidget>
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    _getMoodEmoji(),
-                    style: const TextStyle(fontSize: 16),
-                  ),
+                  Text(_getMoodEmoji(), style: const TextStyle(fontSize: 16)),
                   const SizedBox(width: 6),
                   Flexible(
                     child: Text(
@@ -251,7 +247,9 @@ class _BeePainter extends CustomPainter {
 
     // Listra 1
     canvas.save();
-    canvas.clipRRect(RRect.fromRectAndRadius(bodyRect, const Radius.circular(20)));
+    canvas.clipRRect(
+      RRect.fromRectAndRadius(bodyRect, const Radius.circular(20)),
+    );
     canvas.drawRect(const Rect.fromLTWH(34, 30, 7, 40), stripePaint);
     canvas.drawRect(const Rect.fromLTWH(47, 30, 7, 40), stripePaint);
     canvas.restore();
@@ -281,7 +279,11 @@ class _BeePainter extends CustomPainter {
     canvas.save();
     canvas.translate(42, 34);
     canvas.rotate(-0.35 + wingAngle);
-    final leftWing = Rect.fromCenter(center: const Offset(0, -18), width: 22, height: 32);
+    final leftWing = Rect.fromCenter(
+      center: const Offset(0, -18),
+      width: 22,
+      height: 32,
+    );
     canvas.drawOval(leftWing, wingPaint);
     canvas.drawOval(leftWing, wingBorder);
     canvas.restore();
@@ -290,7 +292,11 @@ class _BeePainter extends CustomPainter {
     canvas.save();
     canvas.translate(58, 34);
     canvas.rotate(0.35 - wingAngle);
-    final rightWing = Rect.fromCenter(center: const Offset(0, -18), width: 22, height: 32);
+    final rightWing = Rect.fromCenter(
+      center: const Offset(0, -18),
+      width: 22,
+      height: 32,
+    );
     canvas.drawOval(rightWing, wingPaint);
     canvas.drawOval(rightWing, wingBorder);
     canvas.restore();
@@ -346,10 +352,13 @@ class _BeePainter extends CustomPainter {
   void _drawFace(Canvas canvas) {
     // Bochechas rosadas
     final blushPaint = Paint()
-      ..color = (mood == BeeMood.hot
-              ? const Color(0xFFFB7185)
-              : const Color(0xFFFDA4AF))
-          .withOpacity(0.7);
+      ..color =
+          (mood == BeeMood.hot
+                  ? const Color(0xFFFB7185)
+                  : mood == BeeMood.cold
+                  ? const Color(0xFF93C5FD)
+                  : const Color(0xFFFDA4AF))
+              .withOpacity(0.7);
     canvas.drawCircle(const Offset(54, 53), 3.2, blushPaint);
     canvas.drawCircle(const Offset(72, 53), 3.2, blushPaint);
 
@@ -368,20 +377,15 @@ class _BeePainter extends CustomPainter {
     } else if (mood == BeeMood.cold) {
       // Boquinha trêmula
       final mouthPath = Path()
-        ..moveTo(60, 54)
-        ..lineTo(62, 52)
-        ..lineTo(64, 54)
-        ..lineTo(66, 52);
+        ..moveTo(60, 56)
+        ..quadraticBezierTo(63, 51, 66, 56);
       canvas.drawPath(mouthPath, mouthPaint);
     } else {
       // Boquinha em 'o' de calor
       final mouthPaintHot = Paint()
         ..color = const Color(0xFF451A03)
         ..style = PaintingStyle.fill;
-      canvas.drawOval(
-        const Rect.fromLTWH(61, 52, 5, 6),
-        mouthPaintHot,
-      );
+      canvas.drawOval(const Rect.fromLTWH(61, 52, 5, 6), mouthPaintHot);
     }
   }
 
@@ -416,4 +420,3 @@ class _BeePainter extends CustomPainter {
     return oldDelegate.wingAngle != wingAngle || oldDelegate.mood != mood;
   }
 }
-

@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+
 import '../core/theme/app_colors.dart';
 import 'glass_container.dart';
 
@@ -13,8 +14,8 @@ class TemperatureMetricCard extends StatelessWidget {
     this.onAdjustTapped,
   });
 
-  bool get isIdeal => internalTemp >= 26.0 && internalTemp <= 32.0;
-  bool get isCold => internalTemp < 26.0;
+  bool get isIdeal => internalTemp >= 28.0 && internalTemp <= 32.0;
+  bool get isCold => internalTemp < 28.0;
 
   Color get statusColor {
     if (isIdeal) return AppColors.healthIdeal;
@@ -23,8 +24,8 @@ class TemperatureMetricCard extends StatelessWidget {
   }
 
   String get statusText {
-    if (isIdeal) return 'Faixa Ideal (26°C – 32°C)';
-    if (isCold) return 'Abaixo do Ideal (< 26°C)';
+    if (isIdeal) return 'Faixa Ideal (28°C – 32°C)';
+    if (isCold) return 'Abaixo do Ideal (< 28°C)';
     return 'Acima do Ideal (> 32°C)';
   }
 
@@ -82,8 +83,10 @@ class TemperatureMetricCard extends StatelessWidget {
                 ],
               ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: statusColor.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(12),
@@ -151,8 +154,8 @@ class TemperatureMetricCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
-              // Faixa verde ideal (26°C a 32°C de 20 a 38)
-              // (26 - 20) / 18 = 0.33; (32 - 20) / 18 = 0.66
+              // Faixa verde ideal (28°C a 32°C de 20 a 38)
+              // (28 - 20) / 18 = 0.44; (32 - 20) / 18 = 0.66
               FractionallySizedBox(
                 alignment: Alignment.centerLeft,
                 widthFactor: 0.67,
@@ -194,7 +197,7 @@ class TemperatureMetricCard extends StatelessWidget {
                 style: TextStyle(fontSize: 10, color: AppColors.mute),
               ),
               Text(
-                'Faixa Ideal: 26°C a 32°C',
+                'Faixa Ideal: 28°C a 32°C',
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
@@ -276,8 +279,10 @@ class TrafficMetricCard extends StatelessWidget {
                 ],
               ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.skyBlue,
                   borderRadius: BorderRadius.circular(12),
@@ -474,8 +479,10 @@ class ClimateMetricCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.surfaceGray.withOpacity(0.75),
                     borderRadius: BorderRadius.circular(16),
@@ -523,8 +530,10 @@ class ClimateMetricCard extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.surfaceGray.withOpacity(0.75),
                     borderRadius: BorderRadius.circular(16),
@@ -576,4 +585,3 @@ class ClimateMetricCard extends StatelessWidget {
     );
   }
 }
-

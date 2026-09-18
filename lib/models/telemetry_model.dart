@@ -15,9 +15,9 @@ class TelemetryModel {
     required this.timestamp,
   });
 
-  bool get isThermallyIdeal => internalTemp >= 26.0 && internalTemp <= 32.0;
+  bool get isThermallyIdeal => internalTemp >= 28.0 && internalTemp <= 32.0;
 
-  bool get isTooCold => internalTemp < 26.0;
+  bool get isTooCold => internalTemp < 28.0;
 
   bool get isTooHot => internalTemp > 32.0;
 
@@ -27,9 +27,9 @@ class TelemetryModel {
 
   String get thermalStatusText {
     if (isThermallyIdeal) {
-      return 'Ideal (26°C – 32°C) • Enxame Confortável';
+      return 'Ideal (28°C – 32°C) • Enxame Confortável';
     } else if (isTooCold) {
-      return 'Baixa Temp (< 26°C) • Risco de Resfriamento';
+      return 'Baixa Temp (< 28°C) • Risco de Resfriamento';
     } else {
       return 'Alta Temp (> 32°C) • Risco de Superaquecimento';
     }
@@ -44,8 +44,8 @@ class TelemetryModel {
   int get swarmHealthScore {
     int score = 100;
     // Penalidade por desvio de temperatura
-    if (internalTemp < 26.0) {
-      score -= ((26.0 - internalTemp) * 8).round().clamp(0, 40);
+    if (internalTemp < 28.0) {
+      score -= ((28.0 - internalTemp) * 8).round().clamp(0, 40);
     } else if (internalTemp > 32.0) {
       score -= ((internalTemp - 32.0) * 10).round().clamp(0, 40);
     }
@@ -106,4 +106,3 @@ class TelemetryModel {
     );
   }
 }
-
