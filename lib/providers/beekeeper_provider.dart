@@ -10,12 +10,14 @@ class BeekeeperProvider extends ChangeNotifier {
   void updateProfile({
     required String name,
     required String meliponaryName,
+    String address = '',
     required String email,
-    required String avatarId,
+    String avatarId = 'avatar_jatai',
   }) {
     _beekeeper = _beekeeper.copyWith(
       name: name,
       meliponaryName: meliponaryName,
+      address: address,
       email: email,
       avatarId: avatarId,
       isRegistered: true,
@@ -28,4 +30,3 @@ class BeekeeperProvider extends ChangeNotifier {
     notifyListeners();
   }
 }
-

@@ -11,7 +11,7 @@ import '../../widgets/bee_mascot_widget.dart';
 import '../../widgets/honeycomb_background.dart';
 import '../connection/connect_hive_view.dart';
 import '../details/hive_detail_view.dart';
-import '../profile/beekeeper_setup_view.dart';
+import '../profile/edit_profile_view.dart';
 import 'widgets/hive_card.dart';
 
 /// Tela inicial inspirada no layout de referência.
@@ -172,7 +172,7 @@ class _Header extends StatelessWidget {
           ),
           GestureDetector(
             onTap: () => Navigator.of(context).push(
-              CupertinoPageRoute(builder: (_) => const BeekeeperSetupView()),
+              CupertinoPageRoute(builder: (_) => const EditProfileView()),
             ),
             child: const SizedBox(
               width: 58,

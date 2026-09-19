@@ -1,6 +1,7 @@
 class BeekeeperModel {
   final String name;
   final String meliponaryName;
+  final String address;
   final String email;
   final String avatarId;
   final DateTime createdAt;
@@ -9,6 +10,7 @@ class BeekeeperModel {
   const BeekeeperModel({
     required this.name,
     required this.meliponaryName,
+    this.address = '',
     required this.email,
     this.avatarId = 'avatar_jatai',
     required this.createdAt,
@@ -18,6 +20,7 @@ class BeekeeperModel {
   BeekeeperModel copyWith({
     String? name,
     String? meliponaryName,
+    String? address,
     String? email,
     String? avatarId,
     DateTime? createdAt,
@@ -26,6 +29,7 @@ class BeekeeperModel {
     return BeekeeperModel(
       name: name ?? this.name,
       meliponaryName: meliponaryName ?? this.meliponaryName,
+      address: address ?? this.address,
       email: email ?? this.email,
       avatarId: avatarId ?? this.avatarId,
       createdAt: createdAt ?? this.createdAt,
@@ -61,6 +65,7 @@ class BeekeeperModel {
     return {
       'name': name,
       'meliponary_name': meliponaryName,
+      'address': address,
       'email': email,
       'avatar_id': avatarId,
       'created_at': createdAt.toIso8601String(),
@@ -68,4 +73,3 @@ class BeekeeperModel {
     };
   }
 }
-
