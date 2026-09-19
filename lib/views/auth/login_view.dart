@@ -134,16 +134,61 @@ class _LoginBrand extends StatelessWidget {
             right: 0,
             top: 35,
             child: IgnorePointer(
-              child: Image.asset(
-                'assets/images/abelha_tela_login.png',
-                width: _loginBeeSize.width,
-                height: _loginBeeSize.height,
-                fit: BoxFit.contain,
-              ),
+              child: const _FloatingLoginBee(),
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _FloatingLoginBee extends StatefulWidget {
+  const _FloatingLoginBee();
+
+  @override
+  State<_FloatingLoginBee> createState() => _FloatingLoginBeeState();
+}
+
+class _FloatingLoginBeeState extends State<_FloatingLoginBee>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _verticalMovement;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat(reverse: true);
+    _verticalMovement = Tween<double>(begin: 7, end: -7).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _verticalMovement,
+      child: Image.asset(
+        'assets/images/abelha_tela_login.png',
+        width: _loginBeeSize.width,
+        height: _loginBeeSize.height,
+        fit: BoxFit.contain,
+      ),
+      builder: (context, child) {
+        return Transform.translate(
+          offset: Offset(0, _verticalMovement.value),
+          child: child,
+        );
+      },
     );
   }
 }
