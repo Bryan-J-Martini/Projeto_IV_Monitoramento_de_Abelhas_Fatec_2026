@@ -11,7 +11,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
-    expect(find.text('BeeVison'), findsOneWidget);
+    expect(find.text('BeeVision'), findsOneWidget);
     expect(find.text('Email:'), findsOneWidget);
     expect(find.text('Senha:'), findsOneWidget);
     expect(find.textContaining('Cadastro'), findsOneWidget);
