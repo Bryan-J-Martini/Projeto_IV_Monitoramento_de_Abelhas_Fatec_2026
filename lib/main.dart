@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import 'core/theme/app_theme.dart';
 import 'providers/beekeeper_provider.dart';
 import 'providers/hive_provider.dart';
-import 'views/dashboard/dashboard_view.dart';
+import 'views/auth/login_view.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,7 +35,7 @@ class MeliponaApp extends StatelessWidget {
         title: 'MeliponaCare - Monitoramento de Colmeias',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
-        home: const DashboardView(),
+        home: const LoginView(),
       ),
     );
   }

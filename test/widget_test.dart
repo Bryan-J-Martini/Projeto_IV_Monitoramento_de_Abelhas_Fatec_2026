@@ -1,24 +1,29 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_abelhas/main.dart';
 import 'package:flutter_abelhas/models/telemetry_model.dart';
+import 'package:flutter_abelhas/views/auth/login_view.dart';
 
 void main() {
-  testWidgets('MeliponaApp smoke test - Dashboard carrega colmeias', (
+  testWidgets('MeliponaApp smoke test - Login carrega e abre cadastro', (
     WidgetTester tester,
   ) async {
-    // Carrega a aplicação completa
     await tester.pumpWidget(const MeliponaApp());
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
-    // Verifica elementos fundamentais do Dashboard
-    expect(find.text('Colmeias Conectadas'), findsOneWidget);
-    expect(find.text('Jataí 01'), findsOneWidget);
-    expect(find.text('Mandaçaia A'), findsOneWidget);
+    expect(find.text('BeeVison'), findsOneWidget);
+    expect(find.text('Email:'), findsOneWidget);
+    expect(find.text('Senha:'), findsOneWidget);
+    expect(find.textContaining('Cadastro'), findsOneWidget);
+
+    await tester.tap(find.textContaining('Cadastro'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CadastroView), findsOneWidget);
   });
 
   test(
-    'TelemetryModel cálculo biológico de temperatura ideal (26°C a 32°C)',
+    'TelemetryModel calculo biologico de temperatura ideal',
     () {
       final idealTelemetry = TelemetryModel(
         internalTemp: 28.5,
