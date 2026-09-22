@@ -183,9 +183,9 @@ class _HiveDetailViewState extends State<HiveDetailView> {
   }
 
   void _openEdit(BuildContext context, HiveModel hive) {
-    Navigator.of(context).push(
-      CupertinoPageRoute(builder: (_) => EditHiveView(hiveId: hive.id)),
-    );
+    Navigator.of(
+      context,
+    ).push(CupertinoPageRoute(builder: (_) => EditHiveView(hiveId: hive.id)));
   }
 
   void _showBeeMessage(BuildContext context, HiveModel hive) {
@@ -343,7 +343,7 @@ class _TemperaturePanel extends StatelessWidget {
                     ),
                   ),
                 ),
-                const Positioned(
+                Positioned(
                   top: 136,
                   child: Text(
                     'TEMPERATURA (°C)',
@@ -369,11 +369,11 @@ class _TemperaturePanel extends StatelessWidget {
                     ),
                   ),
                 ),
-                const Positioned(
+                Positioned(
                   // Espaçamento vertical do nome da abelha.
                   top: 187,
                   child: Text(
-                    'Abelha Jataí',
+                    'Abelha ${hive.shortSpecies}',
                     style: TextStyle(
                       color: Colors.black,
                       fontSize: 18,
