@@ -7,16 +7,15 @@ import '../models/hive_model.dart';
 import '../models/telemetry_model.dart';
 import '../repositories/colmeia_repository.dart';
 import '../repositories/dado_repository.dart';
-import '../repositories/meliponicultor_repository.dart';
 import '../services/esp32_service.dart';
 
 class HiveProvider extends ChangeNotifier {
   final Esp32Service _esp32Service;
   final ColmeiaRepository _hiveRepository;
   final DadoRepository _dataRepository;
-  final MeliponicultorRepository _beekeeperRepository;
 
-  late final Future<void> _loadFuture;
+  Future<void> _loadFuture = Future<void>.value();
+  int? _meliponicultorId;
   List<HiveModel> _hives = [];
   String? _selectedHiveId;
   bool _isLoading = true;
@@ -27,13 +26,15 @@ class HiveProvider extends ChangeNotifier {
     Esp32Service? esp32Service,
     ColmeiaRepository? hiveRepository,
     DadoRepository? dataRepository,
-    MeliponicultorRepository? beekeeperRepository,
   })  : _esp32Service = esp32Service ?? Esp32Service(),
         _hiveRepository = hiveRepository ?? ColmeiaRepository(),
-        _dataRepository = dataRepository ?? DadoRepository(),
-        _beekeeperRepository =
-            beekeeperRepository ?? MeliponicultorRepository() {
-    _loadFuture = _loadFromDatabase();
+        _dataRepository = dataRepository ?? DadoRepository();
+
+  void setMeliponicultorId(int? meliponicultorId) {
+    if (_meliponicultorId == meliponicultorId) return;
+
+    _meliponicultorId = meliponicultorId;
+    _loadFuture = _loadFromDatabase(meliponicultorId);
     unawaited(_loadFuture);
   }
 
@@ -66,19 +67,21 @@ class HiveProvider extends ChangeNotifier {
     return double.parse((total / _hives.length).toStringAsFixed(1));
   }
 
-  Future<void> _loadFromDatabase() async {
+  Future<void> _loadFromDatabase(int? ownerId) async {
     await LocalDataInitializer.instance.ensureInitialized();
-    final beekeeperRows = await _beekeeperRepository.listar();
 
-    if (beekeeperRows.isEmpty) {
+    if (_meliponicultorId != ownerId) return;
+
+    if (ownerId == null) {
+      _hives = [];
+      _selectedHiveId = null;
       _isLoading = false;
       notifyListeners();
       return;
     }
 
-    final beekeeperId = (beekeeperRows.first['id'] as num).toInt();
     final rows = await _hiveRepository.listarAtivas(
-      meliponicultorId: beekeeperId,
+      meliponicultorId: ownerId,
     );
     final loadedHives = <HiveModel>[];
 
@@ -101,6 +104,8 @@ class HiveProvider extends ChangeNotifier {
         ),
       );
     }
+
+    if (_meliponicultorId != ownerId) return;
 
     _hives = loadedHives;
     if (_hives.isNotEmpty) {
@@ -127,10 +132,8 @@ class HiveProvider extends ChangeNotifier {
     bool isOnline = true,
   }) async {
     await _loadFuture;
-    final beekeeperRows = await _beekeeperRepository.listar();
-    if (beekeeperRows.isEmpty) return;
-
-    final beekeeperId = (beekeeperRows.first['id'] as num).toInt();
+    final beekeeperId = _meliponicultorId;
+    if (beekeeperId == null) return;
     final hiveId = await _hiveRepository.inserir(
       nome: name,
       meliponicultorId: beekeeperId,

@@ -84,6 +84,24 @@ class BeekeeperProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<bool> authenticate({
+    required String email,
+    required String password,
+  }) async {
+    await _loadFuture;
+
+    final row = await _repository.buscarPorEmail(email.trim());
+    if (row == null) return false;
+
+    final storedHash = row['senha_hash'] as String?;
+    final passwordHash = PasswordService.hash(password);
+    if (storedHash == null || storedHash != passwordHash) return false;
+
+    _beekeeper = BeekeeperModel.fromDatabase(row);
+    notifyListeners();
+    return true;
+  }
+
   void selectAvatar(String avatarId) {
     _beekeeper = _beekeeper.copyWith(avatarId: avatarId);
     notifyListeners();

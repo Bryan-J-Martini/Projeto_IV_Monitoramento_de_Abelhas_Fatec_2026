@@ -47,11 +47,11 @@ class BeekeeperModel {
 
   factory BeekeeperModel.initial() {
     return BeekeeperModel(
-      name: 'Meliponicultor Guardiao',
-      meliponaryName: 'Meliponario Flor Nativa',
-      email: 'guardiao@meliponario.eco.br',
+      name: '',
+      meliponaryName: '',
+      email: '',
       createdAt: DateTime.now(),
-      isRegistered: true,
+      isRegistered: false,
     );
   }
 

@@ -134,7 +134,7 @@ class _Header extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  beekeeper.name,
+                  'Meliponicultor, ${beekeeper.name}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -171,9 +171,9 @@ class _Header extends StatelessWidget {
             ),
           ),
           GestureDetector(
-            onTap: () => Navigator.of(context).push(
-              CupertinoPageRoute(builder: (_) => const EditProfileView()),
-            ),
+            onTap: () => Navigator.of(
+              context,
+            ).push(CupertinoPageRoute(builder: (_) => const EditProfileView())),
             child: const SizedBox(
               width: 58,
               height: 58,

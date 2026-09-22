@@ -29,7 +29,15 @@ class MeliponaApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => BeekeeperProvider()),
-        ChangeNotifierProvider(create: (_) => HiveProvider()),
+        ChangeNotifierProxyProvider<BeekeeperProvider, HiveProvider>(
+          create: (_) => HiveProvider(),
+          update: (_, beekeeperProvider, hiveProvider) {
+            hiveProvider!.setMeliponicultorId(
+              beekeeperProvider.beekeeper.databaseId,
+            );
+            return hiveProvider;
+          },
+        ),
       ],
       child: MaterialApp(
         title: 'MeliponaCare - Monitoramento de Colmeias',

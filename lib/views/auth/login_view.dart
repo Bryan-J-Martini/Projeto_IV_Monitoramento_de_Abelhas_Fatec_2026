@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../../providers/beekeeper_provider.dart';
 import '../../widgets/honeycomb_background.dart';
 import 'cadastro_view.dart';
 export 'cadastro_view.dart';
@@ -27,6 +30,7 @@ class _LoginViewState extends State<LoginView> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _isLoggingIn = false;
 
   @override
   void dispose() {
@@ -35,9 +39,28 @@ class _LoginViewState extends State<LoginView> {
     super.dispose();
   }
 
-  void _login() {
+  Future<void> _login() async {
     FocusScope.of(context).unfocus();
     if (!(_formKey.currentState?.validate() ?? false)) return;
+    if (_isLoggingIn) return;
+
+    setState(() => _isLoggingIn = true);
+    final authenticated = await context.read<BeekeeperProvider>().authenticate(
+          email: _emailController.text,
+          password: _passwordController.text,
+        );
+
+    if (!mounted) return;
+    setState(() => _isLoggingIn = false);
+
+    if (!authenticated) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('E-mail ou senha incorretos, ou cadastro inexistente.'),
+        ),
+      );
+      return;
+    }
 
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(builder: (_) => const DashboardView()),
@@ -84,10 +107,14 @@ class _LoginViewState extends State<LoginView> {
                           _LoginForm(
                             emailController: _emailController,
                             passwordController: _passwordController,
-                            onSubmit: _login,
+                            onSubmit: () => unawaited(_login()),
                           ),
                           const SizedBox(height: 14),
-                          _LoginButton(onPressed: _login),
+                          _LoginButton(
+                            onPressed: _isLoggingIn
+                                ? null
+                                : () => unawaited(_login()),
+                          ),
                           const SizedBox(height: 27),
                           _RegistrationLink(onTap: _openRegistration),
                         ],
@@ -482,7 +509,7 @@ class _ReferenceBeePainter extends CustomPainter {
 }
 
 class _LoginButton extends StatelessWidget {
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   const _LoginButton({required this.onPressed});
 
