@@ -8,6 +8,7 @@ import '../../models/hive_model.dart';
 import '../../providers/hive_provider.dart';
 import '../../widgets/bee_mascot_widget.dart';
 import '../../widgets/honeycomb_background.dart';
+import '../hive/edit_hive_view.dart';
 
 /// Tela de uma colmeia seguindo o layout compacto da referência.
 class HiveDetailView extends StatefulWidget {
@@ -71,7 +72,7 @@ class _HiveDetailViewState extends State<HiveDetailView> {
                                   _HiveHeader(
                                     name: hive.name,
                                     onBack: () => Navigator.of(context).pop(),
-                                    onEdit: () => _showEditMessage(context),
+                                    onEdit: () => _openEdit(context, hive),
                                   ),
                                   const SizedBox(height: 4),
                                   _TemperaturePanel(
@@ -181,9 +182,9 @@ class _HiveDetailViewState extends State<HiveDetailView> {
     ];
   }
 
-  void _showEditMessage(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Edição da colmeia disponível em breve.')),
+  void _openEdit(BuildContext context, HiveModel hive) {
+    Navigator.of(context).push(
+      CupertinoPageRoute(builder: (_) => EditHiveView(hiveId: hive.id)),
     );
   }
 

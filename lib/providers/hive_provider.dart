@@ -83,6 +83,22 @@ class HiveProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Atualiza os dados de identificação de uma colmeia existente.
+  void updateHive({
+    required String hiveId,
+    required String name,
+    required String species,
+  }) {
+    final index = _hives.indexWhere((hive) => hive.id == hiveId);
+    if (index == -1) return;
+
+    _hives[index] = _hives[index].copyWith(
+      name: name,
+      species: species,
+    );
+    notifyListeners();
+  }
+
   /// Testa conexão com rota http://192.168.4.1/telemetry
   Future<Map<String, dynamic>> testEsp32Connection({
     String ip = '192.168.4.1',
@@ -171,4 +187,3 @@ class HiveProvider extends ChangeNotifier {
     super.dispose();
   }
 }
-
