@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+
 import '../data/local/local_data_initializer.dart';
 import '../models/beekeeper_model.dart';
 import '../repositories/meliponicultor_repository.dart';
@@ -13,7 +14,7 @@ class BeekeeperProvider extends ChangeNotifier {
   bool _isLoading = true;
 
   BeekeeperProvider({MeliponicultorRepository? repository})
-      : _repository = repository ?? MeliponicultorRepository() {
+    : _repository = repository ?? MeliponicultorRepository() {
     _loadFuture = _loadFromDatabase();
     unawaited(_loadFuture);
   }
@@ -23,14 +24,47 @@ class BeekeeperProvider extends ChangeNotifier {
 
   Future<void> _loadFromDatabase() async {
     await LocalDataInitializer.instance.ensureInitialized();
-    final rows = await _repository.listar();
-
-    if (rows.isNotEmpty) {
-      _beekeeper = BeekeeperModel.fromDatabase(rows.first);
-    }
 
     _isLoading = false;
     notifyListeners();
+  }
+
+  Future<bool> register({
+    required String name,
+    required String meliponaryName,
+    required String address,
+    required String email,
+    required String password,
+    String avatarId = 'avatar_jatai',
+  }) async {
+    await _loadFuture;
+
+    final normalizedEmail = email.trim();
+    final existing = await _repository.buscarPorEmail(normalizedEmail);
+    if (existing != null) return false;
+
+    final passwordHash = PasswordService.hash(password);
+    final id = await _repository.inserir(
+      nome: name,
+      email: normalizedEmail,
+      senhaHash: passwordHash,
+      endereco: address,
+      nomeMeliponicultura: meliponaryName,
+    );
+
+    _beekeeper = BeekeeperModel(
+      databaseId: id,
+      name: name,
+      meliponaryName: meliponaryName,
+      address: address,
+      email: normalizedEmail,
+      passwordHash: passwordHash,
+      avatarId: avatarId,
+      createdAt: DateTime.now(),
+      isRegistered: true,
+    );
+    notifyListeners();
+    return true;
   }
 
   Future<void> updateProfile({
@@ -46,10 +80,11 @@ class BeekeeperProvider extends ChangeNotifier {
     final passwordHash = password != null && password.trim().isNotEmpty
         ? PasswordService.hash(password)
         : (_beekeeper.passwordHash.isEmpty
-            ? PasswordService.hash('')
-            : _beekeeper.passwordHash);
+              ? PasswordService.hash('')
+              : _beekeeper.passwordHash);
 
-    final id = _beekeeper.databaseId ??
+    final id =
+        _beekeeper.databaseId ??
         await _repository.inserir(
           nome: name,
           email: email,

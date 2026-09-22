@@ -37,14 +37,22 @@ class _CadastroViewState extends State<CadastroView> {
     FocusScope.of(context).unfocus();
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    await context.read<BeekeeperProvider>().updateProfile(
-          name: _nameController.text.trim(),
-          meliponaryName: _meliponaryController.text.trim(),
-          address: _addressController.text.trim(),
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
-        );
+    final registered = await context.read<BeekeeperProvider>().register(
+      name: _nameController.text.trim(),
+      meliponaryName: _meliponaryController.text.trim(),
+      address: _addressController.text.trim(),
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+    );
     if (!mounted) return;
+
+    if (!registered) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Já existe um cadastro com este e-mail.')),
+      );
+      return;
+    }
+
     Navigator.of(context).pop();
   }
 
