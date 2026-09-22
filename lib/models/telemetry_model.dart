@@ -77,6 +77,18 @@ class TelemetryModel {
     );
   }
 
+  factory TelemetryModel.fromDatabase(Map<String, dynamic> row) {
+    return TelemetryModel(
+      internalTemp: (row['temperatura'] as num?)?.toDouble() ?? 0,
+      trafficIn: (row['entrada'] as num?)?.toInt() ?? 0,
+      trafficOut: (row['saida'] as num?)?.toInt() ?? 0,
+      externalTemp: 0,
+      externalHumidity: 0,
+      timestamp: DateTime.tryParse(row['data_insercao'] as String? ?? '') ??
+          DateTime.now(),
+    );
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'internal_temp': internalTemp,

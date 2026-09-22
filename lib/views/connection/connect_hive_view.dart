@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -70,7 +72,7 @@ class _ConnectHiveViewState extends State<ConnectHiveView> {
     });
   }
 
-  void _saveHive() {
+  Future<void> _saveHive() async {
     if (_nameController.text.trim().isEmpty) {
       _showAlert('Por favor, defina um nome para a colmeia.');
       return;
@@ -87,15 +89,18 @@ class _ConnectHiveViewState extends State<ConnectHiveView> {
           timestamp: DateTime.now(),
         );
 
-    provider.addHive(
+    await provider.addHive(
       name: _nameController.text.trim(),
       species: _selectedSpecies,
       description: _descController.text.trim(),
       ipAddress: _ipController.text.trim(),
+      wifiName: _ssidController.text.trim(),
+      wifiPassword: _passwordController.text,
       initialTelemetry: initialTelemetry,
       isOnline: _connectionSuccess,
     );
 
+    if (!mounted) return;
     Navigator.of(context).pop();
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -676,7 +681,7 @@ class _ConnectHiveViewState extends State<ConnectHiveView> {
                   _currentStep++;
                 });
               } else {
-                _saveHive();
+                unawaited(_saveHive());
               }
             },
             child: Row(

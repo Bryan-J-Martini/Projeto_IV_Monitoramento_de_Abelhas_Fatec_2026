@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -42,16 +44,18 @@ class _EditProfileViewState extends State<EditProfileView> {
     super.dispose();
   }
 
-  void _save() {
+  Future<void> _save() async {
     FocusScope.of(context).unfocus();
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    context.read<BeekeeperProvider>().updateProfile(
+    await context.read<BeekeeperProvider>().updateProfile(
           name: _nameController.text.trim(),
           meliponaryName: _meliponaryController.text.trim(),
           address: _addressController.text.trim(),
           email: _emailController.text.trim(),
+          password: _passwordController.text,
         );
+    if (!mounted) return;
     Navigator.of(context).pop();
   }
 
@@ -164,7 +168,7 @@ class _EditProfileViewState extends State<EditProfileView> {
                     ReferenceActionButton(
                       label: 'Salvar',
                       compactText: true,
-                      onPressed: _save,
+                      onPressed: () => unawaited(_save()),
                     ),
                   ],
                 ),

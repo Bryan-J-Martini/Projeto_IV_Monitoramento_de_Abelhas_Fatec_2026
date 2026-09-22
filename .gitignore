@@ -46,3 +46,41 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Ambientes virtuais
+.venv/
+venv/
+env/
+ENV/
+
+# Variáveis de ambiente e segredos
+.env
+.env.*
+!.env.example
+
+# Banco local
+backend/data/*.db
+backend/data/*.sqlite
+backend/data/*.sqlite3
+
+# Mantém a pasta data no Git
+!backend/data/.gitkeep
+
+# Testes e ferramentas Python
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Pacotes gerados
+dist/
+*.egg-info/
+
+# Logs do backend
+backend/logs/

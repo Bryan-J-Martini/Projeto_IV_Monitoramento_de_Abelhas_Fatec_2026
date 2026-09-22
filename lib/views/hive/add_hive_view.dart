@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -22,14 +24,14 @@ class _AddHiveViewState extends State<AddHiveView> {
     super.dispose();
   }
 
-  void _save() {
+  Future<void> _save() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
       _showMessage('Informe um nome para a colmeia.');
       return;
     }
 
-    context.read<HiveProvider>().addHive(
+    await context.read<HiveProvider>().addHive(
       name: name,
       species: _selectedSpecies,
       description: 'Colmeia cadastrada pelo aplicativo.',
@@ -44,6 +46,7 @@ class _AddHiveViewState extends State<AddHiveView> {
       ),
       isOnline: true,
     );
+    if (!mounted) return;
     Navigator.of(context).pop();
   }
 
@@ -60,7 +63,7 @@ class _AddHiveViewState extends State<AddHiveView> {
       nameController: _nameController,
       selectedSpecies: _selectedSpecies,
       onSpeciesChanged: (species) => setState(() => _selectedSpecies = species),
-      onSave: _save,
+      onSave: () => unawaited(_save()),
     );
   }
 }

@@ -1,24 +1,40 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
+
+import '../data/local/local_data_initializer.dart';
 import '../models/hive_model.dart';
 import '../models/telemetry_model.dart';
+import '../repositories/colmeia_repository.dart';
+import '../repositories/dado_repository.dart';
+import '../repositories/meliponicultor_repository.dart';
 import '../services/esp32_service.dart';
-import '../services/storage_service.dart';
 
 class HiveProvider extends ChangeNotifier {
   final Esp32Service _esp32Service;
+  final ColmeiaRepository _hiveRepository;
+  final DadoRepository _dataRepository;
+  final MeliponicultorRepository _beekeeperRepository;
+
+  late final Future<void> _loadFuture;
   List<HiveModel> _hives = [];
   String? _selectedHiveId;
+  bool _isLoading = true;
   bool _isRefreshing = false;
   Timer? _periodicSyncTimer;
 
-  HiveProvider({Esp32Service? esp32Service})
-      : _esp32Service = esp32Service ?? Esp32Service() {
-    _hives = StorageService.getInitialHives();
-    if (_hives.isNotEmpty) {
-      _selectedHiveId = _hives.first.id;
-    }
-    _startPeriodicSync();
+  HiveProvider({
+    Esp32Service? esp32Service,
+    ColmeiaRepository? hiveRepository,
+    DadoRepository? dataRepository,
+    MeliponicultorRepository? beekeeperRepository,
+  })  : _esp32Service = esp32Service ?? Esp32Service(),
+        _hiveRepository = hiveRepository ?? ColmeiaRepository(),
+        _dataRepository = dataRepository ?? DadoRepository(),
+        _beekeeperRepository =
+            beekeeperRepository ?? MeliponicultorRepository() {
+    _loadFuture = _loadFromDatabase();
+    unawaited(_loadFuture);
   }
 
   List<HiveModel> get hives => List.unmodifiable(_hives);
@@ -34,6 +50,7 @@ class HiveProvider extends ChangeNotifier {
     }
   }
 
+  bool get isLoading => _isLoading;
   bool get isRefreshing => _isRefreshing;
 
   int get onlineCount => _hives.where((h) => h.isOnline).length;
@@ -49,32 +66,101 @@ class HiveProvider extends ChangeNotifier {
     return double.parse((total / _hives.length).toStringAsFixed(1));
   }
 
+  Future<void> _loadFromDatabase() async {
+    await LocalDataInitializer.instance.ensureInitialized();
+    final beekeeperRows = await _beekeeperRepository.listar();
+
+    if (beekeeperRows.isEmpty) {
+      _isLoading = false;
+      notifyListeners();
+      return;
+    }
+
+    final beekeeperId = (beekeeperRows.first['id'] as num).toInt();
+    final rows = await _hiveRepository.listarAtivas(
+      meliponicultorId: beekeeperId,
+    );
+    final loadedHives = <HiveModel>[];
+
+    for (final row in rows) {
+      final hiveId = (row['id'] as num).toInt();
+      final dataRows = await _dataRepository.listarPorColmeia(
+        hiveId,
+        limite: 20,
+      );
+      final history = dataRows
+          .reversed
+          .map(TelemetryModel.fromDatabase)
+          .toList(growable: false);
+
+      loadedHives.add(
+        HiveModel.fromDatabase(
+          row,
+          telemetry: history.isEmpty ? null : history.last,
+          telemetryHistory: history,
+        ),
+      );
+    }
+
+    _hives = loadedHives;
+    if (_hives.isNotEmpty) {
+      _selectedHiveId ??= _hives.first.id;
+    }
+    _isLoading = false;
+    _startPeriodicSyncTimer();
+    notifyListeners();
+  }
+
   void selectHive(String id) {
     _selectedHiveId = id;
     notifyListeners();
   }
 
-  /// Adiciona uma nova colmeia após provisionamento do SoftAP ESP32
-  void addHive({
+  Future<void> addHive({
     required String name,
     required String species,
     required String description,
     required String ipAddress,
     required TelemetryModel initialTelemetry,
+    String wifiName = '',
+    String wifiPassword = '',
     bool isOnline = true,
-  }) {
+  }) async {
+    await _loadFuture;
+    final beekeeperRows = await _beekeeperRepository.listar();
+    if (beekeeperRows.isEmpty) return;
+
+    final beekeeperId = (beekeeperRows.first['id'] as num).toInt();
+    final hiveId = await _hiveRepository.inserir(
+      nome: name,
+      meliponicultorId: beekeeperId,
+      especieAbelha: species,
+      ipAddress: ipAddress,
+      nomeRedeWifi: wifiName,
+      senhaRedeWifi: wifiPassword,
+      dataCriacao: DateTime.now(),
+    );
+    await _dataRepository.inserir(
+      colmeiaId: hiveId,
+      temperatura: initialTelemetry.internalTemp,
+      entrada: initialTelemetry.trafficIn,
+      saida: initialTelemetry.trafficOut,
+      dataInsercao: initialTelemetry.timestamp,
+    );
+
     final newHive = HiveModel(
-      id: 'hive_${DateTime.now().millisecondsSinceEpoch}',
+      id: hiveId.toString(),
+      databaseId: hiveId,
+      meliponicultorId: beekeeperId,
       name: name,
       species: species,
       description: description,
       ipAddress: ipAddress,
+      wifiName: wifiName,
+      wifiPassword: wifiPassword,
       isOnline: isOnline,
       telemetry: initialTelemetry,
       telemetryHistory: [initialTelemetry],
-      galleryPhotos: [
-        'alvado_novo_enxame',
-      ],
       createdAt: DateTime.now(),
     );
 
@@ -83,35 +169,47 @@ class HiveProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Atualiza os dados de identificação de uma colmeia existente.
-  void updateHive({
+  Future<void> updateHive({
     required String hiveId,
     required String name,
     required String species,
-  }) {
+  }) async {
+    await _loadFuture;
     final index = _hives.indexWhere((hive) => hive.id == hiveId);
     if (index == -1) return;
 
-    _hives[index] = _hives[index].copyWith(
+    final hive = _hives[index];
+    final databaseId = hive.databaseId ?? int.tryParse(hive.id);
+    if (databaseId == null) return;
+
+    await _hiveRepository.atualizar(
+      id: databaseId,
+      nome: name,
+      especieAbelha: species,
+      ipAddress: hive.ipAddress,
+      nomeRedeWifi: hive.wifiName,
+      senhaRedeWifi: hive.wifiPassword,
+    );
+
+    _hives[index] = hive.copyWith(
       name: name,
       species: species,
     );
     notifyListeners();
   }
 
-  /// Testa conexão com rota http://192.168.4.1/telemetry
   Future<Map<String, dynamic>> testEsp32Connection({
     String ip = '192.168.4.1',
     bool allowFallback = true,
-  }) async {
-    return await _esp32Service.testConnection(
+  }) {
+    return _esp32Service.testConnection(
       ipAddress: ip,
       allowSimulationFallback: allowFallback,
     );
   }
 
-  /// Atualiza a telemetria de uma colmeia específica
   Future<void> refreshHiveTelemetry(String hiveId) async {
+    await _loadFuture;
     final index = _hives.indexWhere((h) => h.id == hiveId);
     if (index == -1) return;
 
@@ -125,6 +223,17 @@ class HiveProvider extends ChangeNotifier {
         currentBaseTemp: hive.telemetry.internalTemp,
       );
 
+      final databaseId = hive.databaseId ?? int.tryParse(hive.id);
+      if (databaseId != null) {
+        await _dataRepository.inserir(
+          colmeiaId: databaseId,
+          temperatura: updatedTelemetry.internalTemp,
+          entrada: updatedTelemetry.trafficIn,
+          saida: updatedTelemetry.trafficOut,
+          dataInsercao: updatedTelemetry.timestamp,
+        );
+      }
+
       final updatedHistory = List<TelemetryModel>.from(hive.telemetryHistory)
         ..add(updatedTelemetry);
       if (updatedHistory.length > 20) {
@@ -137,16 +246,15 @@ class HiveProvider extends ChangeNotifier {
         isOnline: true,
       );
     } catch (_) {
-      // Se falhar a comunicação
+      _hives[index] = hive.copyWith(isOnline: false);
     } finally {
       _isRefreshing = false;
       notifyListeners();
     }
   }
 
-  /// Alterna o status online/offline para testes
   void toggleOnlineStatus(String hiveId) {
-    final index = _hives.indexWhere((h) => h.id == hiveId);
+    final index = _hives.indexWhere((hive) => hive.id == hiveId);
     if (index != -1) {
       _hives[index] = _hives[index].copyWith(
         isOnline: !_hives[index].isOnline,
@@ -155,28 +263,25 @@ class HiveProvider extends ChangeNotifier {
     }
   }
 
-  /// Permite ao usuário simular diferentes faixas de temperatura para ver a reação do mascote!
   void simulateTemperature(String hiveId, double newTemp) {
-    final index = _hives.indexWhere((h) => h.id == hiveId);
-    if (index != -1) {
-      final hive = _hives[index];
-      final newTelemetry = hive.telemetry.copyWith(
-        internalTemp: double.parse(newTemp.toStringAsFixed(1)),
-        timestamp: DateTime.now(),
-      );
-      _hives[index] = hive.copyWith(telemetry: newTelemetry);
-      notifyListeners();
-    }
+    final index = _hives.indexWhere((hive) => hive.id == hiveId);
+    if (index == -1) return;
+
+    final hive = _hives[index];
+    final newTelemetry = hive.telemetry.copyWith(
+      internalTemp: double.parse(newTemp.toStringAsFixed(1)),
+      timestamp: DateTime.now(),
+    );
+    _hives[index] = hive.copyWith(telemetry: newTelemetry);
+    notifyListeners();
   }
 
-  void _startPeriodicSync() {
+  void _startPeriodicSyncTimer() {
     _periodicSyncTimer?.cancel();
     _periodicSyncTimer = Timer.periodic(const Duration(seconds: 15), (_) {
-      if (_selectedHiveId != null) {
-        final hive = selectedHive;
-        if (hive != null && hive.isOnline) {
-          refreshHiveTelemetry(hive.id);
-        }
+      final hive = selectedHive;
+      if (hive != null && hive.isOnline) {
+        unawaited(refreshHiveTelemetry(hive.id));
       }
     });
   }

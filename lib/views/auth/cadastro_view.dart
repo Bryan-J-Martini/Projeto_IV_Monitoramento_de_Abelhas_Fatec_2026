@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -31,16 +33,18 @@ class _CadastroViewState extends State<CadastroView> {
     super.dispose();
   }
 
-  void _register() {
+  Future<void> _register() async {
     FocusScope.of(context).unfocus();
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    context.read<BeekeeperProvider>().updateProfile(
+    await context.read<BeekeeperProvider>().updateProfile(
           name: _nameController.text.trim(),
           meliponaryName: _meliponaryController.text.trim(),
           address: _addressController.text.trim(),
           email: _emailController.text.trim(),
+          password: _passwordController.text,
         );
+    if (!mounted) return;
     Navigator.of(context).pop();
   }
 
@@ -111,13 +115,16 @@ class _CadastroViewState extends State<CadastroView> {
                           controller: _passwordController,
                           obscureText: true,
                           textInputAction: TextInputAction.done,
-                          onSubmitted: (_) => _register(),
+                          onSubmitted: (_) => unawaited(_register()),
                           validator: _required,
                         ),
                       ],
                     ),
                     const SizedBox(height: 16),
-                    ReferenceActionButton(label: 'Cadastrar', onPressed: _register),
+                    ReferenceActionButton(
+                      label: 'Cadastrar',
+                      onPressed: () => unawaited(_register()),
+                    ),
                   ],
                 ),
               ),

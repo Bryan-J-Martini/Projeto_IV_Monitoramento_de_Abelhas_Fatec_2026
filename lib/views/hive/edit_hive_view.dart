@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -43,7 +45,7 @@ class _EditHiveViewState extends State<EditHiveView> {
     );
   }
 
-  void _save() {
+  Future<void> _save() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -52,11 +54,12 @@ class _EditHiveViewState extends State<EditHiveView> {
       return;
     }
 
-    context.read<HiveProvider>().updateHive(
+    await context.read<HiveProvider>().updateHive(
       hiveId: widget.hiveId,
       name: name,
       species: _selectedSpecies,
     );
+    if (!mounted) return;
     Navigator.of(context).pop();
   }
 
@@ -70,7 +73,7 @@ class _EditHiveViewState extends State<EditHiveView> {
       nameController: _nameController,
       selectedSpecies: _selectedSpecies,
       onSpeciesChanged: (species) => setState(() => _selectedSpecies = species),
-      onSave: _save,
+      onSave: () => unawaited(_save()),
     );
   }
 }

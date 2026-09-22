@@ -3,6 +3,12 @@ import '../models/hive_model.dart';
 import '../models/telemetry_model.dart';
 
 class StorageService {
+  /// Dados usados somente uma vez pelo inicializador para criar o banco vazio.
+  /// O estado normal do aplicativo vem dos repositórios SQLite.
+  static List<HiveModel> get initialHiveData => getInitialHives();
+
+  static BeekeeperModel get initialBeekeeperData => getInitialBeekeeper();
+
   /// Gera colmeias de exemplo para demonstração e inicialização
   static List<HiveModel> getInitialHives() {
     final now = DateTime.now();
@@ -132,4 +138,3 @@ class StorageService {
     return BeekeeperModel.initial();
   }
 }
-

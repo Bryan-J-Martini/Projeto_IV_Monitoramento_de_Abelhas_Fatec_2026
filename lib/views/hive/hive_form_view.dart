@@ -100,29 +100,36 @@ class HiveFormView extends StatelessWidget {
                     horizontalPadding,
                     20,
                   ),
-                  child: Center(
-                    child: SizedBox(
-                      width: contentWidth,
-                      child: Column(
-                        children: [
-                          _HiveFormHeader(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: math.max(0, constraints.maxHeight - 28),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: contentWidth,
+                          child: _HiveFormHeader(
                             title: title,
                             onBack: () => Navigator.of(context).pop(),
                           ),
-                          const SizedBox(height: 2),
-                          _HiveFormCard(
+                        ),
+                        const SizedBox(height: 2),
+                        SizedBox(
+                          width: contentWidth,
+                          child: _HiveFormCard(
                             width: contentWidth,
                             nameController: nameController,
                             selectedSpecies: selectedSpecies,
                             onSpeciesChanged: onSpeciesChanged,
                           ),
-                          const SizedBox(height: 16),
-                          _SaveButton(
-                            width: (contentWidth * 0.59).clamp(168.0, 220.0),
-                            onPressed: onSave,
-                          ),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(height: 24),
+                        _SaveButton(
+                          width: (contentWidth * 0.59).clamp(168.0, 220.0),
+                          onPressed: onSave,
+                        ),
+                      ],
                     ),
                   ),
                 );
@@ -350,17 +357,14 @@ class _SpeciesCard extends StatelessWidget {
               ),
               const SizedBox(height: 3),
               Expanded(
-                child: Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: CustomPaint(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: SizedBox.expand(
                     child: Image.asset(
                       option.imagePath,
-                      fit: BoxFit.contain,
-                      filterQuality: FilterQuality.medium,
+                      fit: BoxFit.cover,
+                      alignment: Alignment.center,
+                      filterQuality: FilterQuality.high,
                     ),
                   ),
                 ),

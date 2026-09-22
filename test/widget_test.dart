@@ -1,6 +1,8 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_abelhas/main.dart';
 import 'package:flutter_abelhas/models/telemetry_model.dart';
+import 'package:flutter_abelhas/views/hive/add_hive_view.dart';
 import 'package:flutter_abelhas/views/auth/login_view.dart';
 
 void main() {
@@ -50,4 +52,16 @@ void main() {
       expect(hotTelemetry.beeMood, equals('hot'));
     },
   );
+
+  testWidgets('Adicionar colmeia carrega a tela sem excecao', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: AddHiveView()),
+    );
+    await tester.pump();
+
+    expect(find.textContaining('Adicionar'), findsWidgets);
+    expect(find.textContaining('JATA'), findsOneWidget);
+  });
 }
