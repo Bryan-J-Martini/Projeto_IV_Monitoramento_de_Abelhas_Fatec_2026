@@ -60,7 +60,7 @@ class DashboardView extends StatelessWidget {
                     if (hives.isEmpty)
                       SliverFillRemaining(
                         hasScrollBody: false,
-                        child: _EmptyState(onAdd: () => _openConnect(context)),
+                        child: const _EmptyState(),
                       )
                     else
                       SliverPadding(
@@ -409,9 +409,7 @@ class _AddHiveButton extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  final VoidCallback onAdd;
-
-  const _EmptyState({required this.onAdd});
+  const _EmptyState();
 
   @override
   Widget build(BuildContext context) {
@@ -431,11 +429,6 @@ class _EmptyState extends StatelessWidget {
             const Text(
               'Adicione a primeira colmeia para começar.',
               textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 14),
-            ElevatedButton(
-              onPressed: onAdd,
-              child: const Text('Adicionar colmeia'),
             ),
           ],
         ),
