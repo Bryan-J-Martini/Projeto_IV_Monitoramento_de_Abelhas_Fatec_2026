@@ -9,8 +9,8 @@ import '../../providers/beekeeper_provider.dart';
 import '../../providers/hive_provider.dart';
 import '../../widgets/bee_mascot_widget.dart';
 import '../../widgets/honeycomb_background.dart';
+import '../connection/connect_hive_view.dart';
 import '../details/hive_detail_view.dart';
-import '../hive/add_hive_view.dart';
 import '../profile/edit_profile_view.dart';
 import 'widgets/hive_card.dart';
 
@@ -114,7 +114,7 @@ class DashboardView extends StatelessWidget {
 
   void _openConnect(BuildContext context) {
     Navigator.of(context)
-        .push(CupertinoPageRoute(builder: (_) => const AddHiveView()));
+        .push(CupertinoPageRoute(builder: (_) => const ConnectHiveView()));
   }
 }
 

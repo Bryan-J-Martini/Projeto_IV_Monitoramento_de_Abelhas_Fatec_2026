@@ -24,6 +24,10 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>O aplicativo precisa acessar o ESP32 na rede Wi-Fi local da colmeia.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>O aplicativo usa a localização enquanto está aberto para identificar a rede Wi-Fi conectada.</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

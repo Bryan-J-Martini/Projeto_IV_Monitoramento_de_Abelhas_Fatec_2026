@@ -3,12 +3,14 @@ import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_colors.dart';
 import '../../models/telemetry_model.dart';
 import '../../providers/hive_provider.dart';
 import '../../widgets/bee_mascot_widget.dart';
 import '../../widgets/glass_container.dart';
+import '../../widgets/wifi_status_card.dart';
 
 class ConnectHiveView extends StatefulWidget {
   const ConnectHiveView({super.key});
@@ -18,15 +20,14 @@ class ConnectHiveView extends StatefulWidget {
 }
 
 class _ConnectHiveViewState extends State<ConnectHiveView> {
-  int _currentStep = 0; // 0 = Wi-Fi SoftAP, 1 = Teste, 2 = Dados da Colmeia
+  int _currentStep = 0; // 0 = Wi-Fi atual, 1 = Teste, 2 = Dados da Colmeia
 
-  // Formulário Wi-Fi SoftAP
-  final TextEditingController _ssidController =
-      TextEditingController(text: 'Abelha_Node_01');
-  final TextEditingController _passwordController =
-      TextEditingController(text: 'melipona2026');
-  final TextEditingController _ipController =
-      TextEditingController(text: AppConstants.defaultEsp32Ip);
+  // Dados da rede em que o ESP32 está configurado.
+  final TextEditingController _ssidController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _ipController = TextEditingController(
+    text: AppConstants.defaultEsp32Ip,
+  );
 
   // Teste de Conexão
   bool _isTestingConnection = false;
@@ -35,8 +36,9 @@ class _ConnectHiveViewState extends State<ConnectHiveView> {
   TelemetryModel? _receivedTelemetry;
 
   // Dados da Colmeia
-  final TextEditingController _nameController =
-      TextEditingController(text: 'Jataí Nova');
+  final TextEditingController _nameController = TextEditingController(
+    text: 'Jataí Nova',
+  );
   String _selectedSpecies = AppConstants.stinglessBeeSpecies[0];
   final TextEditingController _descController = TextEditingController(
     text: 'Caixa INPA modelo 12x12 em madeira de cedro.',
@@ -55,13 +57,15 @@ class _ConnectHiveViewState extends State<ConnectHiveView> {
   Future<void> _testConnection() async {
     setState(() {
       _isTestingConnection = true;
-      _testStatusMessage = 'Conectando a http://${_ipController.text}/telemetry...';
+      _testStatusMessage =
+          'Conectando a http://${_ipController.text}/telemetry...';
     });
 
     final provider = Provider.of<HiveProvider>(context, listen: false);
     final result = await provider.testEsp32Connection(
       ip: _ipController.text.trim(),
-      allowFallback: true,
+      expectedWifiName: _ssidController.text.trim(),
+      allowFallback: false,
     );
 
     setState(() {
@@ -79,7 +83,8 @@ class _ConnectHiveViewState extends State<ConnectHiveView> {
     }
 
     final provider = Provider.of<HiveProvider>(context, listen: false);
-    final initialTelemetry = _receivedTelemetry ??
+    final initialTelemetry =
+        _receivedTelemetry ??
         TelemetryModel(
           internalTemp: 28.5,
           trafficIn: 32,
@@ -107,7 +112,10 @@ class _ConnectHiveViewState extends State<ConnectHiveView> {
       SnackBar(
         content: Row(
           children: [
-            const Icon(CupertinoIcons.checkmark_circle_fill, color: Colors.white),
+            const Icon(
+              CupertinoIcons.checkmark_circle_fill,
+              color: Colors.white,
+            ),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
@@ -162,7 +170,7 @@ class _ConnectHiveViewState extends State<ConnectHiveView> {
               const SizedBox(height: 24),
 
               // Conteúdo do Passo Ativo
-              if (_currentStep == 0) _buildSoftApInstructionsStep(),
+              if (_currentStep == 0) _buildWifiInstructionsStep(),
               if (_currentStep == 1) _buildTestConnectionStep(),
               if (_currentStep == 2) _buildHiveDetailsStep(),
 
@@ -179,7 +187,7 @@ class _ConnectHiveViewState extends State<ConnectHiveView> {
   }
 
   Widget _buildStepIndicator() {
-    final steps = ['Rede Wi-Fi', 'Verificar SoftAP', 'Dados da Colmeia'];
+    final steps = ['Rede Wi-Fi', 'Verificar ESP32', 'Dados da Colmeia'];
 
     return Row(
       children: List.generate(steps.length, (index) {
@@ -198,8 +206,8 @@ class _ConnectHiveViewState extends State<ConnectHiveView> {
                         color: isCompleted
                             ? AppColors.healthIdeal
                             : (isActive
-                                ? AppColors.lakeBlue
-                                : AppColors.divider),
+                                  ? AppColors.lakeBlue
+                                  : AppColors.divider),
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -208,13 +216,12 @@ class _ConnectHiveViewState extends State<ConnectHiveView> {
                       steps[index],
                       style: TextStyle(
                         fontSize: 11,
-                        fontWeight:
-                            isActive ? FontWeight.w700 : FontWeight.w500,
+                        fontWeight: isActive
+                            ? FontWeight.w700
+                            : FontWeight.w500,
                         color: isActive
                             ? AppColors.lakeBlue
-                            : (isCompleted
-                                ? AppColors.ink
-                                : AppColors.mute),
+                            : (isCompleted ? AppColors.ink : AppColors.mute),
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -230,11 +237,13 @@ class _ConnectHiveViewState extends State<ConnectHiveView> {
     );
   }
 
-  // PASSO 1: INSTRUÇÕES E CREDENCIAIS SOFTAP
-  Widget _buildSoftApInstructionsStep() {
+  // PASSO 1: REDE ATUAL DO CELULAR E DO ESP32
+  Widget _buildWifiInstructionsStep() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        const WifiStatusCard(),
+        const SizedBox(height: 14),
         // Card ilustrativo amigável
         GlassContainer(
           borderRadius: 22,
@@ -262,7 +271,7 @@ class _ConnectHiveViewState extends State<ConnectHiveView> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Conectar ao Ponto de Acesso',
+                          'Usar a rede Wi-Fi atual',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
@@ -271,7 +280,7 @@ class _ConnectHiveViewState extends State<ConnectHiveView> {
                         ),
                         SizedBox(height: 2),
                         Text(
-                          'Rede Wi-Fi direta da caixa (ESP32 SoftAP)',
+                          'Celular e ESP32 devem estar na mesma rede',
                           style: TextStyle(
                             fontSize: 12,
                             color: AppColors.slate,
@@ -296,7 +305,7 @@ class _ConnectHiveViewState extends State<ConnectHiveView> {
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Acesse os ajustes Wi-Fi do seu celular e conecte-se à rede emitida pelo nó da colmeia antes de testar a rota.',
+                        'Conecte o celular à rede em que o ESP32 está configurado antes de testar a conexão.',
                         style: TextStyle(
                           fontSize: 12,
                           color: AppColors.slate,
@@ -314,7 +323,7 @@ class _ConnectHiveViewState extends State<ConnectHiveView> {
         const SizedBox(height: 20),
 
         const Text(
-          'CREDENCIAS DO NÓ ESP32',
+          'DADOS DA REDE DO ESP32',
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w700,
@@ -340,13 +349,13 @@ class _ConnectHiveViewState extends State<ConnectHiveView> {
                 icon: CupertinoIcons.lock_fill,
                 label: 'Senha da Rede Wi-Fi',
                 controller: _passwordController,
-                placeholder: 'Senha do SoftAP',
+                placeholder: 'Senha da rede do ESP32',
                 obscureText: true,
               ),
               const Divider(height: 1, indent: 48, color: AppColors.divider),
               _buildFieldTile(
                 icon: CupertinoIcons.link,
-                label: 'Endereço IP SoftAP',
+                label: 'Endereço IP do ESP32',
                 controller: _ipController,
                 placeholder: '192.168.4.1',
               ),
@@ -385,10 +394,7 @@ class _ConnectHiveViewState extends State<ConnectHiveView> {
               Text(
                 'Testando comunicação com http://${_ipController.text}/telemetry',
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.slate,
-                ),
+                style: const TextStyle(fontSize: 12, color: AppColors.slate),
               ),
               const SizedBox(height: 20),
 
@@ -398,8 +404,10 @@ class _ConnectHiveViewState extends State<ConnectHiveView> {
                     ? AppColors.healthIdeal
                     : AppColors.lakeBlue,
                 borderRadius: BorderRadius.circular(16),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 14,
+                ),
                 onPressed: _isTestingConnection ? null : _testConnection,
                 child: _isTestingConnection
                     ? const Row(
@@ -550,8 +558,10 @@ class _ConnectHiveViewState extends State<ConnectHiveView> {
               const Divider(height: 1, indent: 48, color: AppColors.divider),
               // Seletor de Espécie
               Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
                 child: Row(
                   children: [
                     const Icon(
@@ -582,17 +592,19 @@ class _ConnectHiveViewState extends State<ConnectHiveView> {
                                 color: AppColors.slate,
                               ),
                               items: AppConstants.stinglessBeeSpecies
-                                  .map((species) => DropdownMenuItem(
-                                        value: species,
-                                        child: Text(
-                                          species,
-                                          style: const TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w500,
-                                            color: AppColors.ink,
-                                          ),
+                                  .map(
+                                    (species) => DropdownMenuItem(
+                                      value: species,
+                                      child: Text(
+                                        species,
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                          color: AppColors.ink,
                                         ),
-                                      ))
+                                      ),
+                                    ),
+                                  )
                                   .toList(),
                               onChanged: (val) {
                                 if (val != null) {
@@ -672,7 +684,9 @@ class _ConnectHiveViewState extends State<ConnectHiveView> {
         Expanded(
           flex: 2,
           child: CupertinoButton(
-            color: _currentStep == 2 ? AppColors.healthIdeal : AppColors.lakeBlue,
+            color: _currentStep == 2
+                ? AppColors.healthIdeal
+                : AppColors.lakeBlue,
             borderRadius: BorderRadius.circular(16),
             padding: const EdgeInsets.symmetric(vertical: 16),
             onPressed: () {

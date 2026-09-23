@@ -1,82 +1,126 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
+
 import 'package:http/http.dart' as http;
+
 import '../core/constants/app_constants.dart';
 import '../models/telemetry_model.dart';
+import 'wifi_connection_service.dart';
+
+class Esp32ConnectionException implements Exception {
+  final String message;
+
+  const Esp32ConnectionException(this.message);
+
+  @override
+  String toString() => message;
+}
 
 class Esp32Service {
   final http.Client _client;
+  final WifiConnectionService _wifiService;
 
-  Esp32Service({http.Client? client}) : _client = client ?? http.Client();
+  Esp32Service({http.Client? client, WifiConnectionService? wifiService})
+    : _client = client ?? http.Client(),
+      _wifiService = wifiService ?? WifiConnectionService();
 
-  /// Testa a conexão real com o ESP32 na rota SoftAP http://192.168.4.1/telemetry
-  /// Se a conexão falhar ou o dispositivo não estiver no SoftAP, pode simular caso solicitado.
   Future<Map<String, dynamic>> testConnection({
     String ipAddress = AppConstants.defaultEsp32Ip,
-    bool allowSimulationFallback = true,
+    String expectedWifiName = '',
+    bool allowSimulationFallback = false,
   }) async {
     final uri = Uri.parse('http://$ipAddress/telemetry');
+
     try {
-      final response = await _client.get(uri).timeout(
-        const Duration(seconds: 3),
-      );
+      final wifi = await _wifiService.currentConnection();
+      if (!wifi.matchesSsid(expectedWifiName)) {
+        return {
+          'success': false,
+          'isRealHardware': false,
+          'message':
+              'O celular está conectado à rede "${wifi.ssid ?? 'desconhecida'}", '
+              'mas esta colmeia usa "$expectedWifiName".',
+          'telemetry': null,
+        };
+      }
+
+      final response = await _client
+          .get(uri)
+          .timeout(const Duration(seconds: 3));
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body) as Map<String, dynamic>;
         return {
           'success': true,
           'isRealHardware': true,
-          'message': 'ESP32 SoftAP conectado com sucesso!',
+          'message': 'ESP32 conectado com sucesso!',
           'telemetry': TelemetryModel.fromJson(decoded),
         };
-      } else {
-        throw Exception('Status HTTP: ${response.statusCode}');
       }
-    } catch (e) {
+
+      throw Esp32ConnectionException(
+        'O ESP32 respondeu com HTTP ${response.statusCode}.',
+      );
+    } catch (error) {
       if (allowSimulationFallback) {
-        // Fallback para desenvolvimento e testes práticos de UI/UX
-        await Future.delayed(const Duration(milliseconds: 1200));
-        final mockTelemetry = generateMockTelemetry(baseTemp: 28.4);
         return {
           'success': true,
           'isRealHardware': false,
-          'message':
-              'ESP32 Simulado Conectado (Modo Demonstração). Configure o Wi-Fi para o ESP32 real em campo.',
-          'telemetry': mockTelemetry,
+          'message': 'ESP32 simulado conectado.',
+          'telemetry': generateMockTelemetry(baseTemp: 28.4),
         };
       }
+
       return {
         'success': false,
         'isRealHardware': false,
-        'message': 'Não foi possível alcançar $uri: $e',
+        'message': error is Esp32ConnectionException
+            ? error.message
+            : 'Não foi possível acessar $uri. Verifique o Wi-Fi e o IP.',
         'telemetry': null,
       };
     }
   }
 
-  /// Busca telemetria atualizada
   Future<TelemetryModel> fetchTelemetry({
     String ipAddress = AppConstants.defaultEsp32Ip,
+    String expectedWifiName = '',
     double currentBaseTemp = 28.4,
+    bool allowSimulationFallback = false,
   }) async {
     final uri = Uri.parse('http://$ipAddress/telemetry');
+
     try {
-      final response = await _client.get(uri).timeout(
-        const Duration(seconds: 2),
-      );
+      final wifi = await _wifiService.currentConnection();
+      if (!wifi.matchesSsid(expectedWifiName)) {
+        throw const Esp32ConnectionException(
+          'O celular está conectado a outra rede Wi-Fi.',
+        );
+      }
+
+      final response = await _client
+          .get(uri)
+          .timeout(const Duration(seconds: 2));
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body) as Map<String, dynamic>;
         return TelemetryModel.fromJson(decoded);
       }
-    } catch (_) {
-      // Falha de rede ou modo offline
+
+      throw Esp32ConnectionException(
+        'O ESP32 respondeu com HTTP ${response.statusCode}.',
+      );
+    } catch (error) {
+      if (allowSimulationFallback) {
+        return generateMockTelemetry(baseTemp: currentBaseTemp);
+      }
+
+      if (error is Esp32ConnectionException) rethrow;
+      throw const Esp32ConnectionException(
+        'Não foi possível acessar o ESP32. Verifique o Wi-Fi e o endereço IP.',
+      );
     }
-    // Retorna telemetria com pequena variação biológica realista
-    return generateMockTelemetry(baseTemp: currentBaseTemp);
   }
 
-  /// Gera dados de telemetria biológica com pequenas oscilações realistas
   static TelemetryModel generateMockTelemetry({
     double baseTemp = 28.6,
     bool simulateCold = false,
@@ -106,4 +150,3 @@ class Esp32Service {
     );
   }
 }
-

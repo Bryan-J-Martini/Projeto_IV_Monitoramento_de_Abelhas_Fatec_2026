@@ -26,15 +26,16 @@ class HiveProvider extends ChangeNotifier {
     Esp32Service? esp32Service,
     ColmeiaRepository? hiveRepository,
     DadoRepository? dataRepository,
-  })  : _esp32Service = esp32Service ?? Esp32Service(),
-        _hiveRepository = hiveRepository ?? ColmeiaRepository(),
-        _dataRepository = dataRepository ?? DadoRepository();
+  }) : _esp32Service = esp32Service ?? Esp32Service(),
+       _hiveRepository = hiveRepository ?? ColmeiaRepository(),
+       _dataRepository = dataRepository ?? DadoRepository();
 
   void setMeliponicultorId(int? meliponicultorId) {
     if (_meliponicultorId == meliponicultorId) return;
 
     _meliponicultorId = meliponicultorId;
     _loadFuture = _loadFromDatabase(meliponicultorId);
+    unawaited(_loadFuture.then((_) => _syncAllHives()));
     unawaited(_loadFuture);
   }
 
@@ -80,9 +81,7 @@ class HiveProvider extends ChangeNotifier {
       return;
     }
 
-    final rows = await _hiveRepository.listarAtivas(
-      meliponicultorId: ownerId,
-    );
+    final rows = await _hiveRepository.listarAtivas(meliponicultorId: ownerId);
     final loadedHives = <HiveModel>[];
 
     for (final row in rows) {
@@ -91,8 +90,7 @@ class HiveProvider extends ChangeNotifier {
         hiveId,
         limite: 20,
       );
-      final history = dataRows
-          .reversed
+      final history = dataRows.reversed
           .map(TelemetryModel.fromDatabase)
           .toList(growable: false);
 
@@ -101,7 +99,7 @@ class HiveProvider extends ChangeNotifier {
           row,
           telemetry: history.isEmpty ? null : history.last,
           telemetryHistory: history,
-        ),
+        ).copyWith(isOnline: false),
       );
     }
 
@@ -194,19 +192,18 @@ class HiveProvider extends ChangeNotifier {
       senhaRedeWifi: hive.wifiPassword,
     );
 
-    _hives[index] = hive.copyWith(
-      name: name,
-      species: species,
-    );
+    _hives[index] = hive.copyWith(name: name, species: species);
     notifyListeners();
   }
 
   Future<Map<String, dynamic>> testEsp32Connection({
     String ip = '192.168.4.1',
-    bool allowFallback = true,
+    String expectedWifiName = '',
+    bool allowFallback = false,
   }) {
     return _esp32Service.testConnection(
       ipAddress: ip,
+      expectedWifiName: expectedWifiName,
       allowSimulationFallback: allowFallback,
     );
   }
@@ -223,6 +220,7 @@ class HiveProvider extends ChangeNotifier {
     try {
       final updatedTelemetry = await _esp32Service.fetchTelemetry(
         ipAddress: hive.ipAddress,
+        expectedWifiName: hive.wifiName,
         currentBaseTemp: hive.telemetry.internalTemp,
       );
 
@@ -259,9 +257,7 @@ class HiveProvider extends ChangeNotifier {
   void toggleOnlineStatus(String hiveId) {
     final index = _hives.indexWhere((hive) => hive.id == hiveId);
     if (index != -1) {
-      _hives[index] = _hives[index].copyWith(
-        isOnline: !_hives[index].isOnline,
-      );
+      _hives[index] = _hives[index].copyWith(isOnline: !_hives[index].isOnline);
       notifyListeners();
     }
   }
@@ -281,12 +277,19 @@ class HiveProvider extends ChangeNotifier {
 
   void _startPeriodicSyncTimer() {
     _periodicSyncTimer?.cancel();
-    _periodicSyncTimer = Timer.periodic(const Duration(seconds: 15), (_) {
-      final hive = selectedHive;
-      if (hive != null && hive.isOnline) {
-        unawaited(refreshHiveTelemetry(hive.id));
-      }
-    });
+    _periodicSyncTimer = Timer.periodic(
+      const Duration(seconds: 15),
+      (_) => unawaited(_syncAllHives()),
+    );
+  }
+
+  Future<void> _syncAllHives() async {
+    if (_isRefreshing) return;
+
+    final hivesToSync = List<HiveModel>.from(_hives);
+    for (final hive in hivesToSync) {
+      await refreshHiveTelemetry(hive.id);
+    }
   }
 
   @override
