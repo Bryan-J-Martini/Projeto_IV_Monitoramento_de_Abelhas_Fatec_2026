@@ -43,6 +43,8 @@ dependencies:
   connectivity_plus: ^7.3.1
   network_info_plus: ^8.2.1
   permission_handler: ^13.0.2
+  image_picker: ^1.0.7
+  tflite_flutter: ^0.12.1
 
 dev_dependencies:
   flutter_test:
@@ -71,6 +73,7 @@ flutter:
     - assets/images/abelha_tela_login.png
     - assets/images/beevision_icon.png
     - assets/abelhas/
+    - assets/model/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

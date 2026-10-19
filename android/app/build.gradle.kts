@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.example.flutter_abelhas"
-    compileSdk = 36
+    compileSdk = 37
     ndkVersion = "30.0.16248370"
 
     compileOptions {
