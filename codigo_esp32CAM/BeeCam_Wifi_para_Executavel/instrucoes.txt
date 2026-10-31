@@ -1,0 +1,235 @@
+INSTRUÇÕES DE CONFIGURAÇÃO DO ARDUINO IDE
+Projeto BeeCam - ESP32-S3-WROOM-1 N16R8 + OV5640
+
+1. INSTALAR A ARDUINO IDE
+
+Instale a Arduino IDE 2.x.
+
+Site oficial:
+https://www.arduino.cc/en/software
+
+
+2. ADICIONAR O SUPORTE À ESP32
+
+Na Arduino IDE, acesse:
+
+Arquivo > Preferências
+
+No campo "URLs adicionais para Gerenciadores de Placas", adicione:
+
+https://espressif.github.io/arduino-esp32/package_esp32_index.json
+
+Depois acesse:
+
+Ferramentas > Placa > Gerenciador de Placas
+
+Procure por:
+
+esp32 by Espressif Systems
+
+Instale a versão:
+
+3.3.12
+
+Esta é a versão utilizada e validada durante os testes do projeto.
+
+
+3. SELECIONAR A PLACA
+
+Acesse:
+
+Ferramentas > Placa > esp32 > ESP32S3 Dev Module
+
+
+4. CONFIGURAÇÕES RECOMENDADAS DA PLACA
+
+Utilize as seguintes configurações:
+
+Board:
+ESP32S3 Dev Module
+
+USB CDC On Boot:
+Enabled
+
+CPU Frequency:
+240MHz (WiFi)
+
+Core Debug Level:
+None
+
+USB DFU On Boot:
+Disabled
+
+Erase All Flash Before Sketch Upload:
+Disabled
+
+Events Run On:
+Core 1
+
+Flash Mode:
+QIO 80MHz
+
+Flash Size:
+16MB (128Mb)
+
+JTAG Adapter:
+Disabled
+
+Arduino Runs On:
+Core 1
+
+USB Firmware MSC On Boot:
+Disabled
+
+Partition Scheme:
+16M Flash (3MB APP/9.9MB FATFS)
+
+PSRAM:
+OPI PSRAM
+
+Upload Mode:
+UART0 / Hardware CDC
+
+Upload Speed:
+921600
+
+Caso ocorram problemas durante o upload, tente 460800.
+
+USB Mode:
+Hardware CDC and JTAG
+
+
+5. CONFIGURAÇÕES IMPORTANTES
+
+A placa utilizada no projeto é:
+
+ESP32-S3-WROOM-1 N16R8
+
+Características principais:
+
+- 16 MB de Flash
+- 8 MB de PSRAM
+
+Por isso, é importante configurar:
+
+Flash Size = 16MB (128Mb)
+
+PSRAM = OPI PSRAM
+
+Se a PSRAM estiver configurada incorretamente, a câmera pode apresentar instabilidade ou não funcionar corretamente.
+
+
+6. CONECTAR A PLACA
+
+Conecte a ESP32-S3 ao computador por USB.
+
+Depois acesse:
+
+Ferramentas > Porta
+
+Selecione a porta COM correspondente à placa.
+
+Exemplo:
+
+COM3
+
+O número da porta pode mudar de um computador para outro.
+
+
+7. TESTE DA PSRAM
+
+Antes de carregar o firmware principal, pode ser usado o seguinte código para verificar a PSRAM:
+
+void setup() {
+  Serial.begin(115200);
+  delay(1000);
+
+  Serial.println("Teste ESP32-S3");
+
+  if (psramFound()) {
+    Serial.println("PSRAM: OK");
+    Serial.printf("PSRAM: %u bytes\n", ESP.getPsramSize());
+  } else {
+    Serial.println("PSRAM: FALHOU");
+  }
+}
+
+void loop() {
+}
+
+Abra o Monitor Serial em:
+
+115200 baud
+
+O resultado esperado é semelhante a:
+
+Teste ESP32-S3
+PSRAM: OK
+PSRAM: 8388608 bytes
+
+O valor 8388608 corresponde a aproximadamente 8 MB de PSRAM.
+
+
+8. CASO O UPLOAD NÃO INICIE
+
+Se a Arduino IDE ficar parada em "Connecting...":
+
+1. Mantenha o botão BOOT pressionado.
+2. Clique em Upload.
+3. Quando aparecer "Connecting...", solte o botão BOOT.
+
+Em muitos casos isso só é necessário no primeiro upload.
+
+
+9. BIBLIOTECAS
+
+Para o firmware atual do projeto BeeCam não é necessário instalar bibliotecas adicionais para:
+
+- Wi-Fi
+- WebServer
+- Câmera ESP32
+
+As bibliotecas utilizadas já fazem parte do pacote:
+
+esp32 by Espressif Systems
+
+
+10. CONFIGURAÇÃO ATUAL DO PROJETO
+
+O firmware atual utiliza:
+
+Placa:
+ESP32-S3-WROOM-1 N16R8
+
+Câmera:
+OV5640
+
+Resolução:
+800x600 (SVGA)
+
+Formato:
+JPEG
+
+JPEG Quality:
+6
+
+PSRAM:
+8 MB
+
+Wi-Fi criado pela ESP32:
+BeeCam-XXXX
+
+Senha:
+beecam123
+
+IP padrão:
+192.168.4.1
+
+
+11. OBSERVAÇÃO
+
+Para manter o ambiente de desenvolvimento reproduzível, recomenda-se utilizar a mesma versão do pacote ESP32 utilizada durante os testes:
+
+esp32 by Espressif Systems 3.3.12
+
+Alterações de versão podem modificar APIs, comportamento da câmera, USB, PSRAM ou outras configurações da placa.
