@@ -1,0 +1,21 @@
+{
+  "hive_id": "colmeia_jatai_01",
+  "counting_strategy": "BOUNDARY_EXIT",
+  "boundary_margin_px": 20,
+  "roi_polygons": [
+    [
+      [
+        365,
+        164
+      ],
+      [
+        303,
+        681
+      ],
+      [
+        600,
+        762
+      ]
+    ]
+  ]
+}

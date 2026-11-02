@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BeeVision Admin Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="bg-slate-900 border-b border-slate-800 p-4 shadow-md flex justify-between items-center">
+        <div class="flex items-center space-x-3">
+            <span class="text-2xl">🐝</span>
+            <h1 class="text-xl font-bold tracking-wide">BeeVision Admin Hub</h1>
+        </div>
+        <div class="flex items-center space-x-4">
+            <!-- Botão para Habilitar / Desabilitar Recebimento de Dados -->
+            <button id="btn-toggle-stream" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded transition shadow">
+                Pausar Recebimento
+            </button>
+            <div class="text-sm bg-emerald-900/50 text-emerald-400 px-3 py-1 rounded-full border border-emerald-700/50" id="connection-status">
+                ● Sistema Operacional
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 p-6 max-w-7xl mx-auto w-full">
+        
+        <!-- Painel Esquerdo: Visualizador & Canvas de ROI -->
+        <section class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col shadow-lg">
+            <div class="flex justify-between items-center mb-3">
+                <h2 class="font-semibold text-lg text-slate-200">Visualizador & Calibração de ROI</h2>
+                <div class="space-x-2">
+                    <button id="btn-clear-roi" class="px-3 py-1 bg-rose-600/80 hover:bg-rose-600 text-white text-xs rounded transition">Limpar ROI</button>
+                    <button id="btn-save-roi" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs rounded transition">Salvar ROI</button>
+                </div>
+            </div>
+            
+            <div class="relative flex-1 bg-black rounded-lg overflow-hidden flex items-center justify-center border border-slate-800 min-h-[360px]">
+                <canvas id="roiCanvas" class="absolute z-10 cursor-crosshair"></canvas>
+                <img id="videoStream" src="" alt="Stream ao vivo" class="max-h-[450px] object-contain">
+            </div>
+            <p class="text-xs text-slate-400 mt-2">Clique na imagem para adicionar pontos. Botão direito do mouse fecha o polígono atual.</p>
+        </section>
+
+        <!-- Painel Central/Direito: Configurações & Diagnóstico -->
+        <div class="space-y-6 flex flex-col">
+            
+            <!-- Configurações de IA & Hardware -->
+            <section class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-lg">
+                <h2 class="font-semibold text-lg text-slate-200 mb-3">Configurações</h2>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Estratégia de Contagem</label>
+                        <select id="strategySelect" class="w-full bg-slate-950 border border-slate-800 rounded p-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500">
+                            <option value="LINE_CROSSING">LINE_CROSSING (Cruzamento de Linha)</option>
+                            <option value="BOUNDARY_EXIT">BOUNDARY_EXIT (Saída por Borda)</option>
+                        </select>
+                    </div>
+
+                    <!-- Controle de Direção / Inversão -->
+                    <div class="bg-slate-950 p-3 rounded border border-slate-800 space-y-2">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-medium text-slate-400">Direção da Entrada:</span>
+                            <button id="btn-toggle-direction" class="px-2 py-1 bg-amber-600/80 hover:bg-amber-600 text-white text-xs rounded transition font-semibold">
+                                ⇄ Inverter Direção
+                            </button>
+                        </div>
+                        <p id="direction-indicator" class="text-xs text-emerald-400 font-mono">
+                            Sentido Padrão (Esq ➔ Dir / Baixo ➔ Cima)
+                        </p>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Margem de Borda (px): <span id="marginVal">20</span></label>
+                        <input type="range" id="marginRange" min="5" max="50" value="20" class="w-full accent-emerald-500">
+                    </div>
+
+                    <button id="btn-save-config" class="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm rounded transition">
+                        Atualizar Configurações de Lógica
+                    </button>
+                </div>
+            </section>
+
+            <!-- Diagnóstico & Status -->
+            <section class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-lg flex-1 flex flex-col">
+                <h2 class="font-semibold text-lg text-slate-200 mb-3">Diagnóstico ao Vivo</h2>
+                
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-center">
+                        <span class="text-xs text-slate-400 block">Entradas</span>
+                        <span id="metric-entries" class="text-2xl font-bold text-emerald-400">0</span>
+                    </div>
+                    <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-center">
+                        <span class="text-xs text-slate-400 block">Saídas</span>
+                        <span id="metric-exits" class="text-2xl font-bold text-amber-400">0</span>
+                    </div>
+                </div>
+
+                <div class="text-xs text-slate-400 space-y-2 mt-auto bg-slate-950 p-3 rounded-lg border border-slate-800">
+                    <div class="flex justify-between">
+                        <span>Status App Flutter:</span>
+                        <span id="flutter-status" class="text-emerald-400 font-medium">Consumindo API</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Taxa de Tráfego:</span>
+                        <span id="metric-rate" class="text-slate-200">0 / min</span>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <script src="/static/js/roi_canvas.js"></script>
+    <script src="/static/js/dashboard.js"></script>
+</body>
+</html>
