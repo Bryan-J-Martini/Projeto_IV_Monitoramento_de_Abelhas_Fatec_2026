@@ -1,21 +1,22 @@
 {
   "hive_id": "colmeia_jatai_01",
-  "counting_strategy": "BOUNDARY_EXIT",
+  "counting_strategy": "LINE_CROSSING",
   "boundary_margin_px": 20,
   "roi_polygons": [
     [
       [
-        365,
-        164
+        360,
+        41
       ],
       [
-        303,
-        681
+        271,
+        851
       ],
       [
-        600,
-        762
+        689,
+        958
       ]
     ]
-  ]
+  ],
+  "invert_direction": false
 }

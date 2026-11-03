@@ -8,9 +8,11 @@ import '../models/telemetry_model.dart';
 import '../repositories/colmeia_repository.dart';
 import '../repositories/dado_repository.dart';
 import '../services/esp32_service.dart';
+import '../services/python_server_service.dart';
 
 class HiveProvider extends ChangeNotifier {
   final Esp32Service _esp32Service;
+  final PythonServerService _pythonServerService;
   final ColmeiaRepository _hiveRepository;
   final DadoRepository _dataRepository;
 
@@ -24,11 +26,13 @@ class HiveProvider extends ChangeNotifier {
 
   HiveProvider({
     Esp32Service? esp32Service,
+    PythonServerService? pythonServerService,
     ColmeiaRepository? hiveRepository,
     DadoRepository? dataRepository,
-  }) : _esp32Service = esp32Service ?? Esp32Service(),
-       _hiveRepository = hiveRepository ?? ColmeiaRepository(),
-       _dataRepository = dataRepository ?? DadoRepository();
+  })  : _esp32Service = esp32Service ?? Esp32Service(),
+        _pythonServerService = pythonServerService ?? PythonServerService(),
+        _hiveRepository = hiveRepository ?? ColmeiaRepository(),
+        _dataRepository = dataRepository ?? DadoRepository();
 
   void setMeliponicultorId(int? meliponicultorId) {
     if (_meliponicultorId == meliponicultorId) return;
@@ -124,6 +128,7 @@ class HiveProvider extends ChangeNotifier {
     required String species,
     required String description,
     required String ipAddress,
+    String pythonServerIp = '192.168.4.2',
     required TelemetryModel initialTelemetry,
     String wifiName = '',
     String wifiPassword = '',
@@ -132,6 +137,7 @@ class HiveProvider extends ChangeNotifier {
     await _loadFuture;
     final beekeeperId = _meliponicultorId;
     if (beekeeperId == null) return;
+    
     final hiveId = await _hiveRepository.inserir(
       nome: name,
       meliponicultorId: beekeeperId,
@@ -141,6 +147,7 @@ class HiveProvider extends ChangeNotifier {
       senhaRedeWifi: wifiPassword,
       dataCriacao: DateTime.now(),
     );
+    
     await _dataRepository.inserir(
       colmeiaId: hiveId,
       temperatura: initialTelemetry.internalTemp,
@@ -157,6 +164,7 @@ class HiveProvider extends ChangeNotifier {
       species: species,
       description: description,
       ipAddress: ipAddress,
+      pythonServerIp: pythonServerIp,
       wifiName: wifiName,
       wifiPassword: wifiPassword,
       isOnline: isOnline,
@@ -196,7 +204,7 @@ class HiveProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<Map<String, dynamic>> testEsp32Connection({
+  Future testEsp32Connection({
     String ip = '192.168.4.1',
     String expectedWifiName = '',
     bool allowFallback = false,
@@ -224,25 +232,44 @@ class HiveProvider extends ChangeNotifier {
         currentBaseTemp: hive.telemetry.internalTemp,
       );
 
+      int finalEntries = updatedTelemetry.trafficIn;
+      int finalExits = updatedTelemetry.trafficOut;
+      
+      final trafficResponse = await _pythonServerService.fetchLatestTraffic(
+        hive.pythonServerIp, 
+        hive.id,
+      );
+
+      if (trafficResponse != null && trafficResponse['data'] != null) {
+        final trafficData = trafficResponse['data'] as Map;
+        finalEntries = trafficData['entries'] ?? finalEntries;
+        finalExits = trafficData['exits'] ?? finalExits;
+      }
+
+      final consolidatedTelemetry = updatedTelemetry.copyWith(
+        trafficIn: finalEntries,
+        trafficOut: finalExits,
+      );
+
       final databaseId = hive.databaseId ?? int.tryParse(hive.id);
       if (databaseId != null) {
         await _dataRepository.inserir(
           colmeiaId: databaseId,
-          temperatura: updatedTelemetry.internalTemp,
-          entrada: updatedTelemetry.trafficIn,
-          saida: updatedTelemetry.trafficOut,
-          dataInsercao: updatedTelemetry.timestamp,
+          temperatura: consolidatedTelemetry.internalTemp,
+          entrada: consolidatedTelemetry.trafficIn,
+          saida: consolidatedTelemetry.trafficOut,
+          dataInsercao: consolidatedTelemetry.timestamp,
         );
       }
 
       final updatedHistory = List<TelemetryModel>.from(hive.telemetryHistory)
-        ..add(updatedTelemetry);
+        ..add(consolidatedTelemetry);
       if (updatedHistory.length > 20) {
         updatedHistory.removeAt(0);
       }
 
       _hives[index] = hive.copyWith(
-        telemetry: updatedTelemetry,
+        telemetry: consolidatedTelemetry,
         telemetryHistory: updatedHistory,
         isOnline: true,
       );

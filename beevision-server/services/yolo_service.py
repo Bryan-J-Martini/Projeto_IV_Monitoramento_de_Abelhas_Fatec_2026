@@ -2,6 +2,7 @@ import cv2
 import json
 import os
 import numpy as np
+import threading
 from ultralytics import YOLO
 from typing import Dict, List
 from strategies.line_crossing import LineCrossingStrategy
@@ -56,6 +57,10 @@ class YOLOService:
     def set_strategy(self, hive_id: str, strategy_instance, invert: bool = False):
         self.strategies[hive_id] = strategy_instance
         self.invert_directions[hive_id] = invert
+
+    def set_margin(self, hive_id: str, margin: int):
+        self.boundary_margins[hive_id] = margin
+        self._save_config_field(hive_id, "boundary_margin_px", margin)
 
     def set_processing_active(self, hive_id: str, active: bool):
         self.is_processing_active[hive_id] = active
@@ -114,7 +119,6 @@ class YOLOService:
                     cv2.putText(frame, f"ID:{int(track_id)}", (x1, y1 - 10),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
-        # Trecho dentro de process_frame em services/yolo_service.py
         polygons = self.roi_polygons.get(hive_id, [])
         for poly in polygons:
             pts = np.array(poly, np.int32).reshape((-1, 1, 2))
@@ -124,7 +128,6 @@ class YOLOService:
         if hive_id in self.strategies:
             margin = self.boundary_margins.get(hive_id, 20)
             
-            # Agora envia TODOS os polígonos salvos diretamente para a estratégia
             counts = self.strategies[hive_id].update_tracks(
                 tracks=tracks_data, 
                 roi_polygons=polygons, 

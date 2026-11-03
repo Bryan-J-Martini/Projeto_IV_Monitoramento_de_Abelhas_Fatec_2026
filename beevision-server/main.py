@@ -36,6 +36,7 @@ class RoiConfig(BaseModel):
 class LogicConfig(BaseModel):
     counting_strategy: str  # "LINE_CROSSING" ou "BOUNDARY_EXIT"
     boundary_margin_px: Optional[int] = 20
+    invert_direction: Optional[bool] = False
 
 
 class ProcessingState(BaseModel):
@@ -44,14 +45,14 @@ class ProcessingState(BaseModel):
 
 @app.get("/admin", include_in_schema=False)
 async def admin_panel():
-    """Serve o painel web interativo principal (BeeVision Admin Hub)[cite: 1]."""
+    """Serve o painel web interativo principal (BeeVision Admin Hub)."""
     return FileResponse("static/index.html")
 
 
 @app.post("/api/v1/hives/{hive_id}/stream-frame")
 async def stream_frame(hive_id: str, file: UploadFile = File(...)):
     """
-    Recebe o frame individual em JPEG, executa o YOLO Nano + Rastreamento e atualiza as contagens[cite: 2].
+    Recebe o frame individual em JPEG, executa o YOLO Nano + Rastreamento e atualiza as contagens.
     """
     try:
         contents = await file.read()
@@ -72,7 +73,7 @@ async def stream_frame(hive_id: str, file: UploadFile = File(...)):
 
 @app.get("/api/v1/hives/{hive_id}/roi")
 async def get_roi(hive_id: str):
-    """Retorna a ROI salva atualmente no servidor[cite: 1]."""
+    """Retorna a ROI salva atualmente no servidor."""
     polygons = yolo_service.roi_polygons.get(hive_id, [])
     return {
         "status": "success",
@@ -83,7 +84,6 @@ async def get_roi(hive_id: str):
 
 @app.post("/api/v1/hives/{hive_id}/roi")
 async def set_roi(hive_id: str, config: RoiConfig):
-    # Atualiza o serviço YOLO e persiste automaticamente no config.json
     yolo_service.set_roi(hive_id, config.roi_polygons)
     return {
         "status": "success",
@@ -95,16 +95,19 @@ async def set_roi(hive_id: str, config: RoiConfig):
 
 @app.post("/api/v1/hives/{hive_id}/config/logic")
 async def set_logic(hive_id: str, config: LogicConfig):
+    invert = config.invert_direction if config.invert_direction is not None else False
+    margin = config.boundary_margin_px if config.boundary_margin_px is not None else 20
+
     if config.counting_strategy == "LINE_CROSSING":
-        strategy = LineCrossingStrategy()
+        strategy = LineCrossingStrategy(invert_direction=invert)
     elif config.counting_strategy == "BOUNDARY_EXIT":
         strategy = BoundaryExitStrategy()
     else:
         raise HTTPException(status_code=400, detail="Estratégia inválida.")
         
-    yolo_service.set_strategy(hive_id, strategy)
+    yolo_service.set_strategy(hive_id, strategy, invert=invert)
+    yolo_service.set_margin(hive_id, margin)
     
-    # Persiste também as configurações lógicas no config.json
     config_file = "config.json"
     data = {}
     if os.path.exists(config_file):
@@ -115,7 +118,8 @@ async def set_logic(hive_id: str, config: LogicConfig):
             data = {}
             
     data["counting_strategy"] = config.counting_strategy
-    data["boundary_margin_px"] = config.boundary_margin_px
+    data["boundary_margin_px"] = margin
+    data["invert_direction"] = invert
     
     try:
         with open(config_file, "w", encoding="utf-8") as f:
@@ -126,7 +130,26 @@ async def set_logic(hive_id: str, config: LogicConfig):
     return {
         "status": "success",
         "hive_id": hive_id,
-        "active_counting_strategy": config.counting_strategy
+        "active_counting_strategy": config.counting_strategy,
+        "boundary_margin_px": margin,
+        "invert_direction": invert
+    }
+
+
+@app.get("/api/v1/hives/{hive_id}/config/logic")
+async def get_logic(hive_id: str):
+    """Retorna a configuração atual de lógica e direção."""
+    strategy_name = "LINE_CROSSING"
+    if hive_id in yolo_service.strategies:
+        if isinstance(yolo_service.strategies[hive_id], BoundaryExitStrategy):
+            strategy_name = "BOUNDARY_EXIT"
+            
+    return {
+        "status": "success",
+        "hive_id": hive_id,
+        "counting_strategy": strategy_name,
+        "boundary_margin_px": yolo_service.boundary_margins.get(hive_id, 20),
+        "invert_direction": yolo_service.invert_directions.get(hive_id, False)
     }
 
 
@@ -156,6 +179,11 @@ async def get_processing_status(hive_id: str):
 async def get_latest_traffic(hive_id: str):
     counts = yolo_service.current_counts.get(hive_id, {"entries": 0, "exits": 0})
     
+    strategy_name = "LINE_CROSSING"
+    if hive_id in yolo_service.strategies:
+        if isinstance(yolo_service.strategies[hive_id], BoundaryExitStrategy):
+            strategy_name = "BOUNDARY_EXIT"
+
     return {
         "hive_id": hive_id,
         "timestamp": "2026-10-31T11:45:00Z",
@@ -164,70 +192,9 @@ async def get_latest_traffic(hive_id: str):
             "entries": counts["entries"],
             "exits": counts["exits"],
             "traffic_rate_per_minute": counts["entries"] + counts["exits"],
-            "active_counting_strategy": "LINE_CROSSING"
+            "active_counting_strategy": strategy_name
         },
         "media": {
             "annotated_frame_url": f"http://localhost:8000/media/{hive_id}_annotated.jpg"
         }
-    }
-
-class LogicConfig(BaseModel):
-    counting_strategy: str  # "LINE_CROSSING" ou "BOUNDARY_EXIT"
-    boundary_margin_px: Optional[int] = 20
-    invert_direction: Optional[bool] = False
-
-@app.post("/api/v1/hives/{hive_id}/config/logic")
-async def set_logic(hive_id: str, config: LogicConfig):
-    invert = config.invert_direction if config.invert_direction is not None else False
-
-    if config.counting_strategy == "LINE_CROSSING":
-        strategy = LineCrossingStrategy(invert_direction=invert)
-    elif config.counting_strategy == "BOUNDARY_EXIT":
-        strategy = BoundaryExitStrategy()
-    else:
-        raise HTTPException(status_code=400, detail="Estratégia inválida.")
-        
-    yolo_service.set_strategy(hive_id, strategy, invert=invert)
-    yolo_service.set_margin(hive_id, config.boundary_margin_px)
-    
-    config_file = "config.json"
-    data = {}
-    if os.path.exists(config_file):
-        try:
-            with open(config_file, "r", encoding="utf-8") as f:
-                data = json.load(f)
-        except Exception:
-            data = {}
-            
-    data["counting_strategy"] = config.counting_strategy
-    data["boundary_margin_px"] = config.boundary_margin_px
-    data["invert_direction"] = invert
-    
-    try:
-        with open(config_file, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2)
-    except Exception as e:
-        print(f"Erro ao salvar lógica no {config_file}: {e}")
-    
-    return {
-        "status": "success",
-        "hive_id": hive_id,
-        "active_counting_strategy": config.counting_strategy,
-        "invert_direction": invert
-    }
-
-@app.get("/api/v1/hives/{hive_id}/config/logic")
-async def get_logic(hive_id: str):
-    """Retorna a configuração atual de lógica e direção."""
-    strategy_name = "LINE_CROSSING"
-    if hive_id in yolo_service.strategies:
-        if isinstance(yolo_service.strategies[hive_id], BoundaryExitStrategy):
-            strategy_name = "BOUNDARY_EXIT"
-            
-    return {
-        "status": "success",
-        "hive_id": hive_id,
-        "counting_strategy": strategy_name,
-        "boundary_margin_px": yolo_service.boundary_margins.get(hive_id, 20),
-        "invert_direction": yolo_service.invert_directions.get(hive_id, False)
     }

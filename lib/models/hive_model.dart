@@ -8,6 +8,7 @@ class HiveModel {
   final String species;
   final String description;
   final String ipAddress;
+  final String pythonServerIp;
   final String wifiName;
   final String wifiPassword;
   final bool isOnline;
@@ -24,6 +25,7 @@ class HiveModel {
     required this.species,
     required this.description,
     this.ipAddress = '192.168.4.1',
+    this.pythonServerIp = '10.0.2.2',
     this.wifiName = '',
     this.wifiPassword = '',
     this.isOnline = true,
@@ -58,6 +60,7 @@ class HiveModel {
     String? species,
     String? description,
     String? ipAddress,
+    String? pythonServerIp,
     String? wifiName,
     String? wifiPassword,
     bool? isOnline,
@@ -74,6 +77,7 @@ class HiveModel {
       species: species ?? this.species,
       description: description ?? this.description,
       ipAddress: ipAddress ?? this.ipAddress,
+      pythonServerIp: pythonServerIp ?? this.pythonServerIp,
       wifiName: wifiName ?? this.wifiName,
       wifiPassword: wifiPassword ?? this.wifiPassword,
       isOnline: isOnline ?? this.isOnline,
@@ -110,6 +114,7 @@ class HiveModel {
       species: row['especie_abelha'] as String? ?? 'Abelha sem especie',
       description: row['descricao'] as String? ?? '',
       ipAddress: row['ip_address'] as String? ?? '192.168.4.1',
+      pythonServerIp: row['ip_servidor_python'] as String? ?? '192.168.4.2',
       wifiName: row['nome_rede_wifi'] as String? ?? '',
       wifiPassword: row['senha_rede_wifi'] as String? ?? '',
       isOnline: true,
@@ -129,6 +134,7 @@ class HiveModel {
       species: json['species'] as String,
       description: json['description'] as String? ?? '',
       ipAddress: json['ip_address'] as String? ?? '192.168.4.1',
+      pythonServerIp: json['python_server_ip'] as String? ?? '192.168.4.2',
       wifiName: json['wifi_name'] as String? ?? '',
       wifiPassword: json['wifi_password'] as String? ?? '',
       isOnline: json['is_online'] as bool? ?? false,
@@ -158,6 +164,7 @@ class HiveModel {
       'species': species,
       'description': description,
       'ip_address': ipAddress,
+      'python_server_ip': pythonServerIp,
       'wifi_name': wifiName,
       'wifi_password': wifiPassword,
       'is_online': isOnline,

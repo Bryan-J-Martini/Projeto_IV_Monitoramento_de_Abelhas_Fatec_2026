@@ -23,8 +23,7 @@ class LineCrossingStrategy(BaseCountingStrategy):
         if abs(val) < 1.0:
             return 0
             
-        multiplier = -1 if self.invert_direction else 1
-        return multiplier if val > 0 else -multiplier
+        return 1 if val > 0 else -1
 
     def update_tracks(
         self, 
@@ -65,14 +64,23 @@ class LineCrossingStrategy(BaseCountingStrategy):
                 # Verifica se houve troca de lado válida e se o cooldown expirou
                 if last_side != 0 and current_side != 0 and last_side != current_side:
                     if new_cooldown == 0:
-                        # Lado -1 -> +1 = Entrada
-                        if last_side == -1 and current_side == 1:
-                            self.entries += 1
-                            new_cooldown = self.cooldown_frames
-                        # Lado +1 -> -1 = Saída
-                        elif last_side == 1 and current_side == -1:
-                            self.exits += 1
-                            new_cooldown = self.cooldown_frames
+                        # Define as regras de transição considerando a inversão de direção
+                        if not self.invert_direction:
+                            # Padrão: 1 -> -1 = Entrada, -1 -> 1 = Saída
+                            if last_side == 1 and current_side == -1:
+                                self.entries += 1
+                                new_cooldown = self.cooldown_frames
+                            elif last_side == -1 and current_side == 1:
+                                self.exits += 1
+                                new_cooldown = self.cooldown_frames
+                        else:
+                            # Invertido: -1 -> 1 = Entrada, 1 -> -1 = Saída
+                            if last_side == -1 and current_side == 1:
+                                self.entries += 1
+                                new_cooldown = self.cooldown_frames
+                            elif last_side == 1 and current_side == -1:
+                                self.exits += 1
+                                new_cooldown = self.cooldown_frames
                         
                         last_side = current_side
                 
